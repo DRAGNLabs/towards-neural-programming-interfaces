@@ -112,9 +112,9 @@ if __name__ == "__main__":
     pkl_name = args.save_pkl
     pretrained_models = [args.pretrained_model]
     # we have a default special term_list
-    if args.term_list == 'sexist_slurs':
+    if args.target_words == 'sexist_slurs':
         with open("data/sexist_terms.txt",'r') as f:
-            args.term_list = f.read().strip()
+            args.target_words = f.read().strip()
     term_list = args.target_words.split(',') # list of target words
     term_list = [term.lower().strip() for term in term_list] # clean words
     

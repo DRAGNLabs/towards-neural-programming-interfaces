@@ -1694,6 +1694,11 @@ if __name__ == "__main__":
     #                    type=int, 
     #                    default=3, 
     #                    help="update npi once for every update_npi_frac_denom batches (in the limit as num batches goes to inf)")
+    """
+        python3 train_npi.py --save_file_path npi_models/ --train_file_path data/BIDEN_smGPT2_arrays --num_epochs 71 --save_freq 3 --content_classifier_path classifiers/layers_5_11/Classifier_classification_network_epoch2.bin --num_pkls 1 --discrim_coeff 3 --style_coeff 10 --similarity_coeff 1 --test_freq 10 --npi_lr .000001 --class_lr .000001 --head_start_num 2 --first_perturbation_index 5 --second_perturbation_index 11
+
+    """
+    
     # parser.add_argument("--scaling_coeff", 
     #                     type=float, 
     #                     default=1., 
@@ -1846,49 +1851,3 @@ if __name__ == "__main__":
     print("DONE!!!")
     pass
 
-"""
-Train command: 05/13/2020
-nohup python3 -u train_neural_program_interface_adversarially_v3_with_realtime_gpt2_control.py --save_file_path ~/Documents/NeurIPS2020_npi_gan_real_time_data10v1v3_training_05132020/data10v1v3_PARTIAL_1st1FILES_disc100000_sty10000000000_sim100_boosting10000_epochs1000_batch10_classLr0001_npiLr00001_test5_save5_9LayersWithNoResiduals_training_05132020/ --train_file_path ~/Documents/NeurIPS2020_data10v1_05042020/data_set/ --content_classifier_path ~/Documents/neurips2020_data10v1_content_classifier_training_v3_05082020/neurips2020_data10v1_epochs1000_batch10_lr1e4_test10_save20_9LayersNoResiduals_training_05082020/params_lr0.0001/ContentClassifier_network_epoch100.bin --num_epochs 1000 --batch_size 10 --test_freq 5 --save_freq 5 > train_gan_real_time_neurips2020_data10v1v3PARTIAL1st1_AllExamps_ep1000_disc100000_sty10000000000_sim100_log05132020.log &
-
-Train command: 05/12/2020
-nohup python3 -u train_neural_program_interface_adversarially_v3_with_realtime_gpt2_control.py --save_file_path ~/Documents/NeurIPS2020_npi_gan_real_time_data10v1v3_training_05122020/data10v1v3_PARTIAL_1st1FILES_sty10000000000_sim0_boosting10000_epochs1000_batch10_classLr0001_npiLr00001_test5_save5_9LayersWithNoResiduals_training_05122020/ --train_file_path ~/Documents/NeurIPS2020_data10v1_05042020/data_set/ --content_classifier_path ~/Documents/neurips2020_data10v1_content_classifier_training_v3_05082020/neurips2020_data10v1_epochs1000_batch10_lr1e4_test10_save20_9LayersNoResiduals_training_05082020/params_lr0.0001/ContentClassifier_network_epoch100.bin --num_epochs 1000 --batch_size 10 --test_freq 5 --save_freq 5 > train_gan_real_time_neurips2020_data10v1v3PARTIAL1st1_AllExamps_ep1000_sty10000000000_sim0_log05122020.log &
-
-nohup python3 -u train_neural_program_interface_adversarially_v3_with_realtime_gpt2_control.py --save_file_path ~/Documents/NeurIPS2020_npi_gan_real_time_data10v1v3_training_05122020/data10v1v3_PARTIAL_1st1FILES_sty10000000000_sim0_boosting10000_epochs1000_batch10_classLr000001_npiLr00001_test5_save5_9LayersWithResiduals_training_05122020/ --train_file_path ~/Documents/NeurIPS2020_data10v1_05042020/data_set/ --content_classifier_path ~/Documents/neurips2020_data10v1_content_classifier_training_v3_05082020/neurips2020_data10v1_epochs1000_batch10_lr1e4_test10_save20_9LayersNoResiduals_training_05082020/params_lr0.0001/ContentClassifier_network_epoch100.bin --num_epochs 1000 --batch_size 10 --test_freq 5 --save_freq 5 > train_gan_real_time_neurips2020_data10v1v3PARTIAL1st1_40examps_ep1000_sty10000000000_sim0_log05122020.log &
-
-Train command: 05/11/2020
-nohup python3 -u train_neural_program_interface_adversarially_v3_with_realtime_gpt2_control.py --save_file_path ~/Documents/NeurIPS2020_npi_gan_real_time_data10v1v3_training_05092020/data10v1v3_PARTIAL_1st4FILES_sty2000000_sim1_boosting10000_epochs1000_batch10_classLr0001_npiLr00001_test5_save5_9LayersWithResiduals_training_05112020/ --train_file_path ~/Documents/NeurIPS2020_data10v1_05042020/data_set/ --content_classifier_path ~/Documents/neurips2020_data10v1_content_classifier_training_v3_05082020/neurips2020_data10v1_epochs1000_batch10_lr1e4_test10_save20_9LayersNoResiduals_training_05082020/params_lr0.0001/ContentClassifier_network_epoch100.bin --num_epochs 1000 --batch_size 10 --test_freq 5 --save_freq 5 > train_gan_real_time_neurips2020_data10v1v3PARTIAL1st4_ep1000_sty2000000_sim1_log05112020.log &
-
-Train command: 05/10/2020
-nohup python3 -u train_neural_program_interface_adversarially_v3_with_realtime_gpt2_control.py --save_file_path ~/Documents/NeurIPS2020_npi_gan_real_time_data10v1v3_training_05092020/data10v1v3_PARTIAL_1st2FILES_sty2000000_sim10000_boosting10000_epochs1000_batch10_lr1e4_test5_save5_9LayersWithResiduals_training_05102020/ --train_file_path ~/Documents/NeurIPS2020_data10v1_05042020/data_set/ --content_classifier_path ~/Documents/neurips2020_data10v1_content_classifier_training_v3_05082020/neurips2020_data10v1_epochs1000_batch10_lr1e4_test10_save20_9LayersNoResiduals_training_05082020/params_lr0.0001/ContentClassifier_network_epoch100.bin --num_epochs 1000 --batch_size 10 --test_freq 5 --save_freq 5 > train_gan_real_time_neurips2020_data10v1v3PARTIAL1st2_ep1000_sty2000000_sim10000_log05102020.log &
-
-Train command: 05/09/2020
-nohup python3 -u train_neural_program_interface_adversarially_v3_with_realtime_gpt2_control.py --save_file_path ~/Documents/NeurIPS2020_npi_gan_real_time_data10v1v3_training_05092020/data10v1v3_PARTIAL_1st2FILES_sty2_sim1_boosting10000_epochs1000_batch10_lr1e4_test5_save5_9LayersWithResiduals_training_05092020/ --train_file_path ~/Documents/NeurIPS2020_data10v1_05042020/data_set/ --content_classifier_path ~/Documents/neurips2020_data10v1_content_classifier_training_v3_05082020/neurips2020_data10v1_epochs1000_batch10_lr1e4_test10_save20_9LayersNoResiduals_training_05082020/params_lr0.0001/ContentClassifier_network_epoch100.bin --num_epochs 1000 --batch_size 10 --test_freq 5 --save_freq 5 > train_gan_real_time_neurips2020_data10v1v3PARTIAL1st2_ep1000_log05092020.log &
-
-nohup python3 -u train_neural_program_interface_adversarially_v3_with_realtime_gpt2_control.py --save_file_path ~/Documents/NeurIPS2020_npi_gan_real_time_data10v1v3_training_05092020/data10v1v3_PARTIAL_1st2FILES_TEST_sty2_sim1_boosting10000_epochs1000_batch10_lr1e4_test5_save5_9LayersWithResiduals_training_05092020/ --train_file_path ~/Documents/NeurIPS2020_data10v1_05042020/data_set/ --content_classifier_path ~/Documents/neurips2020_data10v1_content_classifier_training_v3_05082020/neurips2020_data10v1_epochs1000_batch10_lr1e4_test10_save20_9LayersNoResiduals_training_05082020/params_lr0.0001/ContentClassifier_network_epoch100.bin --num_epochs 1000 --batch_size 10 --test_freq 5 --save_freq 5 > train_gan_real_time_neurips2020_data10v1v3PARTIAL1st2_TEST_ep1000_log05092020.log &
-
-
-Train command: 05/08/2020
-nohup python3 -u train_neural_program_interface_adversarially_v3_with_realtime_gpt2_control.py --save_file_path ~/Documents/NeurIPS2020_npi_gan_real_time_data10v1v3_training_05082020/data10v1v3_PARTIAL_1st2FILES_sty2_sim1_boosting10000_epochs1000_batch10_lr1e4_test5_save5_9LayersWithResiduals_training_05082020/ --train_file_path ~/Documents/NeurIPS2020_data10v1_05042020/data_set/ --content_classifier_path ~/Documents/neurips2020_data10v1_content_classifier_training_v3_05082020/neurips2020_data10v1_epochs1000_batch10_lr1e4_test10_save20_9LayersNoResiduals_training_05082020/params_lr0.0001/ContentClassifier_network_epoch100.bin --num_epochs 1000 --batch_size 10 --test_freq 5 --save_freq 5 > train_gan_real_time_neurips2020_data10v1v3PARTIAL1st2_ep1000_log05082020.log &
-
-nohup python3 -u train_neural_program_interface_adversarially_v3_with_realtime_gpt2_control.py --save_file_path ~/Documents/NeurIPS2020_npi_gan_real_time_data10v1v3_training_05082020/data10v1v3_sty2_sim1_boosting10000_epochs1000_batch10_lr1e4_test5_save5_9LayersWithResiduals_training_05082020/ --train_file_path ~/Documents/NeurIPS2020_data10v1_05042020/data_set/ --content_classifier_path ~/Documents/neurips2020_data10v1_content_classifier_training_v3_05082020/neurips2020_data10v1_epochs1000_batch10_lr1e4_test10_save20_9LayersNoResiduals_training_05082020/params_lr0.0001/ContentClassifier_network_epoch100.bin --num_epochs 1000 --batch_size 10 --test_freq 5 --save_freq 5 > train_gan_real_time_neurips2020_data10v1v3_ep1000_log05082020.log &
-
-nohup python3 -u train_neural_program_interface_adversarially_v3_with_realtime_gpt2_control.py --save_file_path ~/Documents/NeurIPS2020_npi_gan_real_timeTEST_data10v1v3_training_05082020/data10v1v3_sty10_sim10_epochs1000_batch10_lr1e4_test5_save5_9LayersWithResiduals_training_05082020/ --train_file_path ~/Documents/NeurIPS2020_data10v1_05042020/data_set/ --content_classifier_path ~/Documents/neurips2020_data10v2_content_classifier_training_v3_05082020/neurips2020_data10v1_epochs1000_batch15_lr1e4_test10_save20_9LayersNoResiduals_training_05082020/params_lr0.0001/ContentClassifier_network_epoch0.bin --num_epochs 1000 --batch_size 10 --test_freq 5 --save_freq 5 > train_gan_real_timeTEST_neurips2020_data10v1v3_ep1000_log05082020.log &
-
-
-Train command: 05/02/2020
-nohup python3 -u train_neural_program_interface_adversarially_v2_with_realtime_gpt2_control.py --save_file_path ~/Documents/NeurIPS2020_npi_gan_real_time_data200v2v2_training_05022020/data200v2v2_sty10_sim10_epochs1000_batch10_lr1e4_test20_save25_9LayersWithResiduals_training_05022020/ --train_file_path ~/Documents/npi_gpt2lmh_NeurIPS2020_data200_v2_04202020/data_set/ --content_classifier_path ~/Documents/neurips2020_data200v2_content_classifier_training_v2_04272020/neurips2020_data200v2_epochs1000_batch10_lr1e4_test20_save25_9LayersNoResiduals_training_04272020/params_lr0.0001/ContentClassifier_network_epoch100.bin --num_epochs 1000 --batch_size 10 --test_freq 20 --save_freq 25 > train_gan_real_time_neurips2020_data200v2v2_ep1000_log05022020.log &
-
-
-Train command: 04/20/2020
-nohup python3 -u train_neural_program_interface_adversarially_v1.py --save_file_path ~/Documents/NeurIPS2020_npi_gpt2lmh_gan_neurips2020_data1_training_v1_04202020/neurips2020_data1_sty10_sim10_epochs1000_batch10_lr1e4_test20_save25_8LayersWithResiduals_training_04202020/ --train_file_path ~/Documents/npi_gpt2lmh_NeurIPS2020_data1_04172020/data_set/ --content_classifier_path ~/Documents/neurips2020_data1_content_classifier_training_v1_gpt2lmh_04182020/neurips2020_data1_epochs1000_batch10_lr1e4_test20_save25_7LayersNoResiduals_training_04182020/params_lr0.0001/ContentClassifier_network_epoch200.bin --num_epochs 1000 --batch_size 10 --test_freq 20 --save_freq 25 > train_gan_neurips2020_data1_ep1000_log04202020.log &
-
-Train command: 04/04/2020
-nohup python3 -u train_npi_and_classifiers_via_gridsearch_v2.py --save_file_path ~/Documents/npi_gpt2lmh_gan_grid_data3_04042020/training_ep20_bat25_test5_save5_04042020/ --train_file_path ~/Documents/npi_gpt2lmh_gan_data3_03282020/data_set/ --num_epochs 20 --batch_size 25 --test_freq 5 --save_freq 5 > train_gpt2lmh_gan_grid_log04042020.log &
-
-Train Command: 03/28/2020
-nohup python3 -u train_npi_and_classifiers_via_gridsearch_v2.py --save_file_path ~/Documents/npi_gpt2lmh_gan_data1_03282020/training_03282020/ --train_file_path ~/Documents/npi_gpt2lmh_gan_data1_03282020/data_set/ --num_epochs 20 --batch_size 25 --test_freq 5 --save_freq 5 > train_gpt2lmh_gan_log03282020.log &
-
-Train command 6: 03/13/2020
-python3 train_neural_program_interface_and_classifiers.py --save_file_path /mnt/pccfs/backed_up/zac/zac_2020/npi_gan_gpt2_clean1_training_npi_and_classifiers_results2/ --train_file_path /mnt/pccfs/backed_up/zac/zac_2020/npi_gan_gpt2_clean_dataset2/ --style_coeff 1.5 --similarity_coeff 2.05 --num_epochs 200 --batch_size 25 --test_freq 6 --save_freq 10
-
-"""

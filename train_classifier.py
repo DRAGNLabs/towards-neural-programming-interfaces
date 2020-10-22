@@ -545,10 +545,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--save_file_path", 
                         default=None, 
-                        help="/path/to/save/model/to/")
+                        help="npi_models/")
     parser.add_argument("--train_file_path_base", 
                         default=None, 
-                        help="/path/to/training/dataset.pkl/and/optional_classifier.bin")
+                        help="data/BIDEN_smGPT2_arrays")
     parser.add_argument("--num_epochs", 
                         type=int, 
                         default=70, 
@@ -559,14 +559,17 @@ if __name__ == "__main__":
                         help="number of language model generated sequences to put into each training batch")
     parser.add_argument("--test_freq", 
                         type=int, 
-                        default=100, 
+                        default=5, 
                         help="test every test_freq batches")
     parser.add_argument("--save_freq", 
                         type=int, 
-                        default=7, 
+                        default=5, 
                         help="save the model during training every save_freq epochs")
     #parser.add_argument("--norm_loss_wt", # NOTE: added by nate
     #                    type=float,
+    """
+    python3 train_classifier.py --num_epochs 10 --batch_size 5 --test_freq 2 --save_freq 2 --num_pkls 1 --first_perturbation_index 5 --second_perturbation_index 11 --save_file_path ./classifiers/ --train_file_path_base ./data/BIDEN_smGPT2_arrays
+    """
     #                    default=.5,
     #                    help="how badly do we want the classifier not to choose .5 ?")
     parser.add_argument("--num_pkls",
