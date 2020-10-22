@@ -1,28 +1,26 @@
->📋  A template README.md for code accompanying a Machine Learning paper
-
 # Towards Neural Program Interfaces
 
-This repository is the official implementation of "Towards Neural Program Interfaces" (https://arxiv.org/abs/2030.12345). 
+This repository is the official implementation of "Towards Neural Programming Interfaces" (to be published and presented in NeurIPS 2020 proceedings). 
 
 >📋  Optional: include a graphic explaining your approach/main result, bibtex entry, link to demos, blog posts and tutorials
 
-## Requirements
+## Dependencies
 
-To install requirements:
+To install dependencies and get ready to run scripts, simply run:
 
 ```setup
-pip install -r requirements.txt
+bash install_dependencies.sh
 ```
-
->📋  Describe how to set up the environment, e.g. pip/conda/docker commands, download datasets, etc...
+This bash script uses pip to install needed packages.
 
 ## Dataset generation
 
 To generate a dataset, run this command:
 
 ```data
-python construct_data.py --word <word>
+python construct_data.py --target-words <target words>
 ```
+You may choose not to specify the target word option, in which case the default will be a set of sexist terms
 
 ## Training classifier
 
@@ -31,6 +29,7 @@ To train a classifier model on the generated dataset, run this command:
 ```classifier
 python train_classifier.py
 ```
+For this and other scripts you may specify keyword arguments as you see fit.
 
 ## Evaluating classifier
 
@@ -39,6 +38,7 @@ To evaluate a classifier model, run this command:
 ```evaluate
 python test_classifier.py
 ```
+And observe printed output. If classifier's performance is low, consider training again with a different class-learning-rate
 
 ## Training NPI
 
@@ -55,10 +55,6 @@ To evaluate an NPI model, run this command:
 ```classifier
 python evaluate_npi_fast.py
 ```
-
->📋  Describe how to train the models, with example commands on how to train the models in your paper, including the full training procedure and appropriate hyperparameters.
-
->📋  Describe how to evaluate the trained models on benchmarks reported in the paper, give commands that produce the results (section below).
 
 ## Pre-trained Models
 
