@@ -83,8 +83,8 @@ if __name__ == "__main__":
                         help="base name of pickle files to write data set to"
                         )
     parser.add_argument("--target-words",
-                        default="cat",
-                        help="words to target, separated by commas"
+                        default="sexist slurs",
+                        help="words to target, separated by commas; e.g. 'cat,dog,mouse'\n'sexist slurs' is a special value for this argument"
                         )   
     parser.add_argument("--pretrained-model",
                         default="gpt2",
@@ -111,7 +111,12 @@ if __name__ == "__main__":
     mixed_sentence_file = args.mixed_sentence_file
     pkl_name = args.save_pkl
     pretrained_models = [args.pretrained_model]
-    term_list = args.target_words.split() # list of target words
+    # we have a default special term_list
+    if args.term_list == 'sexist_slurs':
+        with open("data/sexist_terms.txt",'r') as f:
+            args.term_list = f.read().strip()
+    term_list = args.target_words.split(',') # list of target words
+    term_list = [term.lower().strip() for term in term_list] # clean words
     
     # Some very important constants
     TARG = ['target words']

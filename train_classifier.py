@@ -549,31 +549,6 @@ if __name__ == "__main__":
     parser.add_argument("--train_file_path_base", 
                         default=None, 
                         help="/path/to/training/dataset.pkl/and/optional_classifier.bin")
-    # parser.add_argument("--classifier_path", 
-    #                     default=None, 
-    #                     help="/path/to/optional_classifier.bin")
-    # parser.add_argument("--style_coeff", 
-    #                     type=float, 
-    #                     default=1., 
-    #                     help="i.e. alpha: this is the parameter that determines how much weight to give classifier score while training the NPI")
-    # parser.add_argument("--similarity_coeff", 
-    #                     type=float, 
-    #                     default=1., 
-    #                     help="i.e. beta: this parameter determines how much weight to give the original language model's output")
-    # parser.add_argument("--scaling_coeff", 
-    #                     type=float, 
-    #                     default=1., 
-    #                     help="i.e. -1.0*gamma: this parameter determines how the most likely 'x's are determined.")
-    # parser.add_argument("--npi_type", 
-    #                     default='ConvNPI', 
-    #                     help="one of: [ConvNPI]")
-    # parser.add_argument("--classifier_type", 
-    #                     default='pretrained', 
-    #                     help="one of: [pretrained, adversarial]")
-    # parser.add_argument("--language_model_type", 
-    #                     default='gpt2', 
-    #                     help="one of: [gpt2]")
-                        
     parser.add_argument("--num_epochs", 
                         type=int, 
                         default=70, 
@@ -612,7 +587,7 @@ if __name__ == "__main__":
                         help="which second layer to perturb")
     parser.add_argument("--class_lr",
                         type=float,
-                        default=1e-3,
+                        default=1e-5,
                         help="model optimizer learning rate")
 
 

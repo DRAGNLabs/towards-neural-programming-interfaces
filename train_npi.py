@@ -18,7 +18,7 @@ Overview:
         - Not part of the NPI class, allows for reshaping generated 'controlled' 
           activations and running them through a given neural model
 """
-from transformers import *
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
 from torch.nn import CrossEntropyLoss
 from transformers.modeling_transfo_xl_utilities import ProjectedAdaptiveLogSoftmax#, sample_logits
@@ -50,8 +50,7 @@ import pdb # n8
 
 from matplotlib import pyplot as plt
 
-from train_class_FOR_INDIVIDUAL_GRIDSEARCH import Classifier # n8
-from train_class_FOR_INDIVIDUAL_GRIDSEARCH import extract_needed_layers # n8
+from train_classifier import Classifier, extract_needed_layers # n8
 
 import time # n8
 
@@ -1049,6 +1048,8 @@ def train_adversarial_NPI(args): # train NPI and Classifiers in-tandem
     # initialize function vars
     save_file_path = args.save_file_path
     train_file_path = args.train_file_path
+    if not "pkl" in train_file_path: # train file path should have specific format
+        train_file_path = train_file_path + ".pkl_"
     #if '.pkl' in train_file_path: # n8
     #    train_file_path = train_file_path.strip('.pkl')
     #train_file_path = train_file_path + '.pkl' # n8

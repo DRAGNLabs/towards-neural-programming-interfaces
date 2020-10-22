@@ -1,6 +1,6 @@
 import pickle as pkl
 import torch
-from train_class_FOR_INDIVIDUAL_GRIDSEARCH import Classifier, extract_needed_layers
+from train_classifier import Classifier, extract_needed_layers
 #import train_class
 #from traindeepskip_class import Classifier
 import numpy as np
@@ -17,35 +17,6 @@ DATA_PATH = "/home/nate/DATA/npi_proj/REAL5_OFFENSE_sentence_arrays_CLEANED_TEST
 
 if __name__ == "__main__":
 
-    """parser = argparse.ArgumentParser()
-    parser.add_argument("--pkl_name_base",
-                        default=None,
-                        help="/path/to/clean/data")
-    parser.add_argument("--num_pkls",
-                        type=int,
-                        default=0)
-
-    args = parser.parse_args()"""
-
-    """parser = argparse.ArgumentParser()
-    parser.add_argument("--file_path_base",
-                        default=None,
-                        help="/path/to/classifier/directory")
-    parser.add_argument("--data_path_base",
-                        default=None,
-                        help="/path/to/data")
-    parser.add_argment("--test_start_num",
-                        type-int,
-                        default=0)
-    parser.add_argment("--test_end_num",
-                        type-int,
-                        default=0)
-    parser.add_argment("--epoch_num",
-                        type-int,
-                        default=0)
-
-    args = parser.parse_args()"""
-
     """
     command line:
     nvidia-docker run -d --name test_chase -v /raid/remote/n8rob:/raid/remote/n8rob -v /mnt/pccfs:/mnt/pccfs -e NVIDIA_VISIBLE_DEVICES=10 nvcr.io/nvidia/pytorch:19.10-py3 python3 /raid/remote/n8rob/slurs/MULTsivrin8_npi_test_for_classifiers_for_dummies.py &> foo.log &
@@ -61,14 +32,15 @@ if __name__ == "__main__":
     --num_pkls 11 --first_perturbation_index 5 --second_perturbation_index 11 --save_file_path /raid/remote/n8rob/offense/classifiers/smGPT2_JUNE4_clean/ --train_file_path_base /raid/remote/n8rob/offense/smGPT2_data/OFF_smgpt2_sent_arrays_
     """
 
-    EPOCH_NUM_LIST = [4]#, 20, 30, 40] #, 40]
-    FILE_PATH_LIST = ["/mnt/pccfs/backed_up/n8rob/broke_zac_github/class_SAMI_3/layers_0_-1/"] * len(EPOCH_NUM_LIST)
+    EPOCH_NUM_LIST = [4,6,8]#, 20, 30, 40] #, 40]
+    FILE_PATH_LIST = ["./classifiers/layers_5_11/"] * len(EPOCH_NUM_LIST)
 
     for classifier_num in range(len(EPOCH_NUM_LIST)):
         EPOCH_NUM = EPOCH_NUM_LIST[classifier_num]
-        TEST_NUMS = list(range(31,34))
+        TEST_NUMS = [0]#list(range(31,34))
         FILE_PATH = FILE_PATH_LIST[classifier_num]#"/raid/remote/n8rob/slurs/trump_classifiers3/layers_5_11/"
-        DATA_PATH = "/mnt/pccfs/backed_up/n8rob/broke_zac_github/transformers/gan_pkls/REAL3_OFFENSE/REAL3_OFFENSE_sentence_arrays_TEST"#"/raid/remote/n8rob/slurs/data/SLUR_racist_smGPT2_faster_arrays_FIXED"
+        DATA_PATH = "./data/BIDEN_smGPT2_arrays"
+        
         PRED_INDS = [5,11]
         print("NEW FILE",FILE_PATH,"epoch num",EPOCH_NUM,flush=True)
 
@@ -99,21 +71,21 @@ if __name__ == "__main__":
         for test_num in TEST_NUMS:
         #for pklnum in range(1,71):
             # Load arrays
-            with open(DATA_PATH+"{}.pkl".format(test_num),'rb') as f:
+            with open(DATA_PATH+".pkl_{}".format(test_num),'rb') as f:
             #with open("../../DATA/npi_proj/CAT_IN_sentence_arrays_{}.pkl".format(pklnum),'rb') as f:
                 money = pkl.load(f)
 
             score = 0
             alt_score = 0
             for i in range(len(money)):
-                #arr = extract_needed_layers(money[i][0],PRED_INDS) # HACK NOTE
-                arr = money[i][0] 
+                arr = extract_needed_layers(money[i][0],PRED_INDS) # HACK NOTE
+                #arr = money[i][0] 
                 arr = torch.Tensor(arr).cuda()#.to(torch.device('cuda:1'))
                 #if CONV:
                 #    arr = arr.unsqueeze(0)#.permute(0,3,1,2)
                 sent = money[i][-1]
-                #truth = money[i][1][1]
-                truth = list(money[i][1][0,:,0])[0]
+                truth = money[i][1][1]
+                #truth = list(money[i][1][0,:,0])[0]
                 #yhat = list(classifier(arr).cpu().data.numpy())[0]
                 yhat = classifier(arr).squeeze().cpu().item()
                 if truth == 1 and yhat >= .5:#.7:

@@ -148,5 +148,15 @@ clinton gan:
  nvidia-docker run -d --name clinton_gan_nocat -v /raid/remote/n8rob:/raid/remote/n8rob -e NVIDIA_VISIBLE_DEVICES=14 nvcr.io/nvidia/pytorch:19.10-py3 python3 /raid/remote/n8rob/slurs/train_yes_cat_gan.py --save_file_path /raid/remote/n8rob/slurs/clinton_gans_PRO/no_cats/ --train_file_path /raid/remote/n8rob/slurs/clinton_data/BIDEN_smGPT2_arrays.pkl_ --num_epochs 71 --save_freq 10 --content_classifier_path /raid/remote/n8rob/slurs/clinton_classifiers/layers_5_11/Classifier_classification_network_epoch16.bin --num_pkls 3 --discrim_coeff 3 --style_coeff 10 --similarity_coeff 1 --test_freq 10 --npi_lr .000001 --class_lr .000001 --head_start_num 5 --first_perturbation_index 5 --second_perturbation_index 11 &> foo.log &
 
 
+############ FOR GITHUB #########################
+
+classifier train
+
+ python3 train_classifier.py --num_epochs 10 --batch_size 5 --test_freq 2 --save_freq 2 --num_pkls 1 --first_perturbation_index 5 --second_perturbation_index 11 --save_file_path ./classifiers/ --train_file_path_base ./data/BIDEN_smGPT2_arrays
+
+npi train
+
+ python3 train_npi.py --save_file_path npi_models/ --train_file_path data/BIDEN_smGPT2_arrays --num_epochs 71 --save_freq 3 --content_classifier_path classifiers/layers_5_11/Classifier_classification_network_epoch8.bin --num_pkls 1 --discrim_coeff 3 --style_coeff 10 --similarity_coeff 1 --test_freq 10 --npi_lr .000001 --class_lr .000001 --head_start_num 2 --first_perturbation_index 5 --second_perturbation_index 11
+
 yep ending
 

@@ -26,13 +26,13 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 
-from transformers import GPT2Config, OpenAIGPTConfig, XLNetConfig, TransfoXLConfig, XLMConfig
+from transformers import GPT2Config#, OpenAIGPTConfig, XLNetConfig, TransfoXLConfig, XLMConfig
 
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
-from transformers import OpenAIGPTLMHeadModel, OpenAIGPTTokenizer
-from transformers import XLNetLMHeadModel, XLNetTokenizer
-from transformers import TransfoXLLMHeadModel, TransfoXLTokenizer
-from transformers import XLMWithLMHeadModel, XLMTokenizer
+# from transformers import OpenAIGPTLMHeadModel, OpenAIGPTTokenizer
+# from transformers import XLNetLMHeadModel, XLNetTokenizer
+# from transformers import TransfoXLLMHeadModel, TransfoXLTokenizer
+# from transformers import XLMWithLMHeadModel, XLMTokenizer
 
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
@@ -42,14 +42,14 @@ logger = logging.getLogger(__name__)
 
 MAX_LENGTH = int(10000)  # Hardcoded max length to avoid infinite loop
 
-ALL_MODELS = sum((tuple(conf.pretrained_config_archive_map.keys()) for conf in (GPT2Config, OpenAIGPTConfig, XLNetConfig, TransfoXLConfig, XLMConfig)), ())
+ALL_MODELS = sum((tuple(conf.pretrained_config_archive_map.keys()) for conf in (GPT2Config,)), ())
 
 MODEL_CLASSES = {
     'gpt2': (GPT2LMHeadModel, GPT2Tokenizer),
-    'openai-gpt': (OpenAIGPTLMHeadModel, OpenAIGPTTokenizer),
-    'xlnet': (XLNetLMHeadModel, XLNetTokenizer),
-    'transfo-xl': (TransfoXLLMHeadModel, TransfoXLTokenizer),
-    'xlm': (XLMWithLMHeadModel, XLMTokenizer),
+    # 'openai-gpt': (OpenAIGPTLMHeadModel, OpenAIGPTTokenizer),
+    # 'xlnet': (XLNetLMHeadModel, XLNetTokenizer),
+    # 'transfo-xl': (TransfoXLLMHeadModel, TransfoXLTokenizer),
+    # 'xlm': (XLMWithLMHeadModel, XLMTokenizer),
 }
 
 # Padding text to help Transformer-XL and XLNet with short prompts as proposed by Aman Rusia
