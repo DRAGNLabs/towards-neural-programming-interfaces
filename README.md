@@ -1,4 +1,4 @@
-# Towards Neural Program Interfaces
+# Towards Neural Programming Interfaces
 
 This repository is the official implementation of "Towards Neural Programming Interfaces" (to be published and presented in NeurIPS 2020 proceedings). 
 
