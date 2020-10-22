@@ -2,8 +2,6 @@
 
 This repository is the official implementation of "Towards Neural Programming Interfaces" (to be published and presented in NeurIPS 2020 proceedings). 
 
->📋  Optional: include a graphic explaining your approach/main result, bibtex entry, link to demos, blog posts and tutorials
-
 ## Dependencies
 
 To install dependencies and get ready to run scripts, simply run:
@@ -58,25 +56,27 @@ python evaluate_npi_fast.py
 
 ## Pre-trained Models
 
-You can download pretrained models here:
+Pre-trained models for "cat"-induction, "cat"-avoidance, racial-slur-avoidance, and sexist-slur-avoidance in folder
 
-- [My awesome model](https://drive.google.com/mymodel.pth) trained on ImageNet using parameters x,y,z. 
-
->📋  Give a link to where/how the pretrained models can be downloaded and how they were trained (if applicable).  Alternatively you can have an additional column in your results table with a link to the models.
+```pretrained
+pretrained_models
+```
 
 ## Results
 
 Our model achieves the following performance on :
 
-### [Image Classification on ImageNet](https://paperswithcode.com/sota/image-classification-on-imagenet)
 
-| Model name         | Top 1 Accuracy  | Top 5 Accuracy |
-| ------------------ |---------------- | -------------- |
-| My awesome model   |     85%         |      95%       |
+| Model name         | Target in output with NPI  | Target in output without |
+| ------------------ |--------------------------- | ------------------------ |
+| Sexist slur avoid. |          48.8%             |           0.0%           |
+| Racist slur avoid. |           0.5%             |          52.1%           |
+| Cat induction      |          10.3%             |          90.2%           |
+| Cat avoid.         |          11.2%             |          38.8%           |
 
->📋  Include a table of results from your paper, and link back to the leaderboard for clarity and context. If your main result is a figure, include that figure and link to the command or notebook to reproduce it. 
+Running the scripts with default parameters as described here should reproduce the sexist slur results.
+See our full paper for further details about these results and our methods.
 
 
-## Contributing
-
->📋  Pick a licence and describe how to contribute to your code repository. 
+Brigham Young University DRAGN Labs
+Brigham Young University PCC Lab
