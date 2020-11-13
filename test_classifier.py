@@ -8,13 +8,6 @@ from matplotlib import pyplot as plt
 import pdb
 import argparse
 
-#ATTEMPT_NUM = 2
-EPOCH_NUM = 30
-TEST_NUMS = [11]#range(4,8)#,list(range(305, 325))
-FILE_PATH = "/home/nate/MODELS/npi_proj/offense_classifier_full_data_may29/layers_2_9/"#"/mnt/pccfs/backed_up/n8rob/FOR_OFFENSE/classifier_full_data/layers_2_9/"
-DATA_PATH = "/home/nate/DATA/npi_proj/REAL5_OFFENSE_sentence_arrays_CLEANED_TEST"
-#GPU_NUM = 1
-
 if __name__ == "__main__":
 
     """

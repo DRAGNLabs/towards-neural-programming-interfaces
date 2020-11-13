@@ -6,14 +6,9 @@
 #                    NPI Project                    #
 #                       2020                        #
 
-#             See file                              #
-
 import numpy as np 
 import re
 import pickle as pkl
-import copy
-import pdb
-import gc
 import random
 
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
@@ -28,7 +23,6 @@ from tqdm import tqdm
 import argparse
 import os
 import pdb
-import copy as cp
 
 # for NLP
 import spacy
@@ -36,18 +30,18 @@ nlp = spacy.load("en_core_web_sm")
 
 """
 The output of the GPT-2 model is a tuple of length 3
-Last element of tuple is all_hidden_states, a list of length 25
-Each element of all_hidden_states is a hidden-state tensor of size (1,seq_length,num_possible_labels)
+Last element of tuple is all_hidden_states, a list of length 25 for medium GPT-2 (13 for small)
+Each element of all_hidden_states is a hidden-state tensor of size (1,seq_length,emb_dimension)
 For many many sentences:
-    Take 20-word sentence
-    For i in range(20):
+    Take seq_length-word sentence
+    For i in range(num_iters):
         Pass sentence through GPT2
-        Take first and last hidden states and concatenate them to BIG_ARRAY
+        Take selected indices of hidden states and concatenate them to BIG_ARRAY
         Get next predicted token from GPT2 and append to sentence
-        Make sentence length 20 again by removing first token
-Then BIG_ARRAY is size (1,800,num_possible_labels) (but we may want to reshape it to be (800, num_possible_labels, 1))
+        Make sentence length seq_lenth again by removing first token
+Then BIG_ARRAY is size (1,num_iters*seq_length*len(selected_indices),num_possible_labels) 
+    but we may want to reshape it to be ((1,num_iters*seq_length*len(selected_indices), num_possible_labels, 1)
 
-See terminal for all the code I typed to do this minus the loops
 """
 
 if __name__ == "__main__":
@@ -58,11 +52,9 @@ if __name__ == "__main__":
         Take sentence
         For i in range(num_iters):
             Pass sentence through GPT2
-            Take first and last hidden states and concatenate them to big_array
+            Take hidden states and concatenate them to big_array
             Get next predicted token from GPT2 and append to sentence
             Make sentence length sent_len again by removing first token
-    Then big_array is size (1,2*sent_len*num_iters,1024) 
-            (but we may want to reshape it to be (2*sent_len*num_iters, 1024, 1))
 
     Params:
         num_sentences (int): max number of sentences to get data for
@@ -117,7 +109,9 @@ if __name__ == "__main__":
             args.target_words = f.read().strip()
     term_list = args.target_words.split(',') # list of target words
     term_list = [term.lower().strip() for term in term_list] # clean words
-    
+    while '' in term_list: # we don't want any '' empty strings
+        term_list.remove('')
+
     # Some very important constants
     TARG = ['target words']
     WORDS = {'target words':term_list}
@@ -129,6 +123,9 @@ if __name__ == "__main__":
     # num_checks will determine the maximum number of .pkl data files to be generated
     #   of course you can always kill the process once you feel you have enough data
     num_chunks=25 * len(pretrained_models) * len(PRED_INDICES)
+    num_chunks = 57 # NOTE: This just for the default sexist slur NPI training, for which only 57 pickles are needed. Suggested to comment out
+                    # for other applications and just interrupt the process when you have a good amount of data 
+                    # (depending on your machinery, time constraints)
     num_sentences_per_chunk=4000//len(PRED_INDICES) # a pkl file should only be so big for loading speed
     num_sentences = num_chunks * num_sentences_per_chunk
     sent_len=args.seq_len

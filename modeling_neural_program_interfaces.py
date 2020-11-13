@@ -35,7 +35,6 @@ import random as rand
 import argparse
 import numpy as np
 import os
-import copy as cp
 
 class GPT2WithNPI(GPT2Model):
     r"""
