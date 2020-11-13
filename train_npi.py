@@ -1695,7 +1695,7 @@ if __name__ == "__main__":
     #                    default=3, 
     #                    help="update npi once for every update_npi_frac_denom batches (in the limit as num batches goes to inf)")
     """
-        python3 train_npi.py --save_file_path npi_models/ --train_file_path data/BIDEN_smGPT2_arrays --num_epochs 71 --save_freq 3 --content_classifier_path classifiers/layers_5_11/Classifier_classification_network_epoch2.bin --num_pkls 1 --discrim_coeff 3 --style_coeff 10 --similarity_coeff 1 --test_freq 10 --npi_lr .000001 --class_lr .000001 --head_start_num 2 --first_perturbation_index 5 --second_perturbation_index 11
+        python3 train_npi.py --save_file_path npi_models/ --train_file_path data/B_smGPT2_arrays --num_epochs 71 --save_freq 3 --content_classifier_path classifiers/layers_5_11/Classifier_classification_network_epoch2.bin --num_pkls 1 --discrim_coeff 3 --style_coeff 10 --similarity_coeff 1 --test_freq 10 --npi_lr .000001 --class_lr .000001 --head_start_num 2 --first_perturbation_index 5 --second_perturbation_index 11
 
     """
     

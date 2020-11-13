@@ -12,17 +12,17 @@ if __name__ == "__main__":
 
     """
     command line:
-    nvidia-docker run -d --name test_chase -v /raid/remote/n8rob:/raid/remote/n8rob -v /mnt/pccfs:/mnt/pccfs -e NVIDIA_VISIBLE_DEVICES=10 nvcr.io/nvidia/pytorch:19.10-py3 python3 /raid/remote/n8rob/slurs/MULTsivrin8_npi_test_for_classifiers_for_dummies.py &> foo.log &
+    nvidia-docker run -d --name test_chase -v /raid/remote/name:/raid/remote/name -v /mnt/server -e NVIDIA_VISIBLE_DEVICES=10 nvcr.io/nvidia/pytorch:19.10-py3 python3 /raid/remote/name.py &> foo.log &
         """
 
-    """TRUMP
-    --file_path_base /raid/remote/n8rob/slurs/trump_classifiers2/layers_5_11/ --data_path_base /raid/remote/n8rob/slurs/trump_data/TRUMP_smGPT2_arrays.pkl_ --test_start_num 34 --test_end_num 39 --epoch_num 20
+    """Political figure
+    --file_path_base /raid/remote/name/ --data_path_base /raid/remote/data.pkl_ --test_start_num 34 --test_end_num 39 --epoch_num 20
     """
     """RACIST
-    --file_path_base  /raid/remote/n8rob/slurs/racist_classifiers3/layers_5_11/ --data_path_base /raid/remote/n8rob/slurs/data/SLUR_racist_smGPT2_faster_arrays_FIXED --test_start_num 25 --test_end_num 29 --epoch_num 90
+    --file_path_base  /raid/remote/classifier/ --data_path_base /raid/remote/data/ --test_start_num 25 --test_end_num 29 --epoch_num 90
     """
     """OFFENSE
-    --num_pkls 11 --first_perturbation_index 5 --second_perturbation_index 11 --save_file_path /raid/remote/n8rob/offense/classifiers/smGPT2_JUNE4_clean/ --train_file_path_base /raid/remote/n8rob/offense/smGPT2_data/OFF_smgpt2_sent_arrays_
+    --num_pkls 11 --first_perturbation_index 5 --second_perturbation_index 11 --save_file_path /raid/remote/name/ --train_file_path_base /raid/remote/data/
     """
 
     EPOCH_NUM_LIST = [4,6,8]#, 20, 30, 40] #, 40]
@@ -32,7 +32,7 @@ if __name__ == "__main__":
         EPOCH_NUM = EPOCH_NUM_LIST[classifier_num]
         TEST_NUMS = [0]#list(range(31,34))
         FILE_PATH = FILE_PATH_LIST[classifier_num]#"/raid/remote/n8rob/slurs/trump_classifiers3/layers_5_11/"
-        DATA_PATH = "./data/BIDEN_smGPT2_arrays"
+        DATA_PATH = "./data/B_smGPT2_arrays"
         
         PRED_INDS = [5,11]
         print("NEW FILE",FILE_PATH,"epoch num",EPOCH_NUM,flush=True)
