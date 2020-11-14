@@ -354,7 +354,7 @@ if __name__ == "__main__":
     parser.add_argument("--save-file-path", 
                         default="classifiers/", 
                         help="directory to save classifiers to")
-    parser.add_argument("--train-file-path_base", 
+    parser.add_argument("--train-file-path-base", 
                         default="data/sentence_arrays", 
                         help="path to data (standard file name witout pkl suffix, full or relative file path)")
     parser.add_argument("--num-epochs", 
