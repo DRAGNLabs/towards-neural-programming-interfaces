@@ -312,19 +312,29 @@ def train_classifier(args):
             if epoch % save_freq == 0:
                 # save the current version of the npi_mode, along with optimizer and loss record
 
+                # save model
                 out_path = save_file_path+"{}_classification_network_epoch{}.bin".format('Classifier', epoch)
                 torch.save(classifier_model, out_path)
+                # save optimizer
                 out_path = save_file_path+"{}_classification_optimizer_epoch{}.bin".format('Classifier', epoch)
                 torch.save(class_optimizer, out_path)
+                # save training info
                 out_path = save_file_path + "N8_classification_loss_summaries.pkl"
                 with open(out_path, 'wb') as outfile:
                     pkl.dump({"epoch_losses":class_epoch_losses, "batch_losses":class_batch_losses, "tests":class_tests}, outfile)
 
         print("SAVING AFTER EPOCH ITERATIONS")
-        # Save once again after training
+        # Save training info once again after training
         out_path = save_file_path + "N8_classification_loss_summaries.pkl"
         with open(out_path, 'wb') as outfile:
             pkl.dump({"epoch_losses":class_epoch_losses, "batch_losses":class_batch_losses, "tests":class_tests}, outfile)
+
+        # save model after training
+        out_path = save_file_path+"{}_classification_network_epoch{}.bin".format('Classifier', num_epochs)
+        torch.save(classifier_model, out_path)
+        # save optimizer after training
+        out_path = save_file_path+"{}_classification_optimizer_epoch{}.bin".format('Classifier', num_epochs)
+        torch.save(class_optimizer, out_path)
 
         loop.close()
         print("Epoch loss history == ", epoch_losses)
@@ -341,49 +351,42 @@ def train_classifier(args):
 if __name__ == "__main__":
     # main function: train_classifier()
     parser = argparse.ArgumentParser()
-    parser.add_argument("--save_file_path", 
+    parser.add_argument("--save-file-path", 
                         default="classifiers/", 
                         help="directory to save classifiers to")
-    parser.add_argument("--train_file_path_base", 
+    parser.add_argument("--train-file-path_base", 
                         default="data/sentence_arrays", 
                         help="path to data (standard file name witout pkl suffix, full or relative file path)")
-    parser.add_argument("--num_epochs", 
+    parser.add_argument("--num-epochs", 
                         type=int, 
                         default=70, 
                         help="number of epochs to train for")
-    parser.add_argument("--batch_size", 
+    parser.add_argument("--batch-size", 
                         type=int, 
                         default=5, 
                         help="number of language model generated sequences to put into each training batch")
-    parser.add_argument("--test_freq", 
+    parser.add_argument("--test-freq", 
                         type=int, 
                         default=5, 
                         help="test every test_freq batches")
-    parser.add_argument("--save_freq", 
+    parser.add_argument("--save-freq", 
                         type=int, 
                         default=5, 
                         help="save the model during training every save_freq epochs")
-    parser.add_argument("--num_pkls",
+    parser.add_argument("--num-pkls",
                         type=int,
-                        default=53,
+                        default=53, # IMPORTANT NOTE: We only use 53 of the 57 available pickles (in default example)
+                                    # The remaining 4 (~6.25%) are for testing
                         help="how many pickle of data we got?")
-    parser.add_argument("--gpu_num",
+    parser.add_argument("--gpu-num",
                         type=int,
                         default=0,
                         help="which GPU to use")
-    parser.add_argument("--first_perturbation_index",
-                        type=int,
-                        default=0,
-                        help="which first layer to perturb")
-    parser.add_argument("--second_perturbation_index",
-                        type=int,
-                        default=1,
-                        help="which second layer to perturb")
-    parser.add_argument("--perturbation_indices",
+    parser.add_argument("--perturbation-indices",
                         type=str,
                         default="5,11",
                         help="indices for layers to extract from language model activations: string of numbers separated by commas")
-    parser.add_argument("--class_lr",
+    parser.add_argument("--class-lr",
                         type=float,
                         default=1e-3,
                         help="model optimizer learning rate")

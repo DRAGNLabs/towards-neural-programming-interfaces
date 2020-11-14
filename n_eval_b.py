@@ -28,7 +28,7 @@ def load_input_texts():
     #        for d in data:
     #            input_texts.append(d[1][0])
     
-    #text_1000_pkl = "/mnt/pccfs/backed_up/n8rob/slur_results/from_sivri/trump/trump_sents_1000.pkl" # TRUMP like sents
+    #text_1000_pkl = "/mnt/pccfs/backed_up/n8rob/slur_results/from_sivri/t/t_sents_1000.pkl" # T like sents
     #with open(text_1000_pkl,'rb') as f:
     #    input_texts = pkl.load(f)
 
@@ -214,7 +214,7 @@ def generate_text_with_NPI(in_text, lm_model, vanilla_lm_model, tokenizer, pertu
 
 if __name__ == "__main__":
 
-    target_word = "biden"
+    target_word = "b"
 
     
 
@@ -230,19 +230,19 @@ if __name__ == "__main__":
             # dog
             #"/mnt/pccfs/backed_up/n8rob/dog/adversarial_npi_network_epoch40.bin"
            
-            # pro biden aaai
-            #"/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_biden/adversarial_npi_network_epoch10.bin",
-            #"/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_biden/adversarial_npi_network_epoch20.bin",
-            "/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_biden/adversarial_npi_network_epoch30.bin",
-            #"/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_biden/adversarial_npi_network_epoch40.bin",
-            #"/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_biden/adversarial_npi_network_epoch50.bin",
-            #"/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_biden/adversarial_npi_network_epoch60.bin",
-            #"/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_biden/adversarial_npi_network_epoch70.bin",
-            #"/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_biden/adversarial_npi_network_epoch80.bin",
-            #"/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_biden/adversarial_npi_network_epoch90.bin",
-            #"/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_biden/adversarial_npi_network_epoch100.bin",
-            #"/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_biden/adversarial_npi_network_epoch110.bin",
-            #"/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_biden/adversarial_npi_network_epoch120.bin",
+            # pro b aaai
+            #"/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_b/adversarial_npi_network_epoch10.bin",
+            #"/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_b/adversarial_npi_network_epoch20.bin",
+            "/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_b/adversarial_npi_network_epoch30.bin",
+            #"/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_b/adversarial_npi_network_epoch40.bin",
+            #"/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_b/adversarial_npi_network_epoch50.bin",
+            #"/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_b/adversarial_npi_network_epoch60.bin",
+            #"/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_b/adversarial_npi_network_epoch70.bin",
+            #"/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_b/adversarial_npi_network_epoch80.bin",
+            #"/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_b/adversarial_npi_network_epoch90.bin",
+            #"/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_b/adversarial_npi_network_epoch100.bin",
+            #"/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_b/adversarial_npi_network_epoch110.bin",
+            #"/mnt/pccfs/backed_up/n8rob/aaai_npi/pro_b/adversarial_npi_network_epoch120.bin",
 
             ]
 
@@ -269,7 +269,7 @@ if __name__ == "__main__":
         print("#########################################################")
         print("")
     
-        outfile_name = '/raid/remote/n8rob/slurs/pro_biden_eval/' + str(ind)
+        outfile_name = '/raid/remote/n8rob/slurs/pro_b_eval/' + str(ind)
         f = open(outfile_name + '_counts.txt', 'w')
         f.write(path_to_npi)
         f.write('\n')
