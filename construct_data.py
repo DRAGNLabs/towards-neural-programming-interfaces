@@ -392,17 +392,17 @@ if __name__ == "__main__":
                 #GPT2_TEXT_INDEX = 8
                 if append_to_dataset:
                     datum = [
-			        big_array, # ORIG ACTIV
-			        orig_classification, # ORIG LABEL
-			        None, # this no longer used
-			        model_name, # LANG MODEL: model_name an abstraction for 'gpt2'
-			        {'num_gpt2_iters':num_gpt2_iters_run,\
-                                        'orig_tokens':orig_tokens,\
-                                        'gpt2_generated_tokens':gpt2_generated_tokens}, # META DATA
-			        orig_text, # ORIG TEXT (or what we're deeming 'originial text')
-			        None, # PRED TEXT this literally won't exist until we have an NPI
-			        TARG[0], # TARG TEXT 
-			        gpt2_generated_text # GPT2 TEXT: just generated right here by the GPT2 :D :D
+                        big_array, # ORIG ACTIV
+                        orig_classification, # ORIG LABEL
+                        None, # this no longer used
+                        model_name, # LANG MODEL: model_name an abstraction for 'gpt2'
+                        {'num_gpt2_iters':num_gpt2_iters_run,\
+                                            'orig_tokens':orig_tokens,\
+                                            'gpt2_generated_tokens':gpt2_generated_tokens}, # META DATA
+                        orig_text, # ORIG TEXT (or what we're deeming 'originial text')
+                        None, # PRED TEXT this literally won't exist until we have an NPI
+                        TARG[0], # TARG TEXT 
+                        gpt2_generated_text # GPT2 TEXT: just generated right here by the GPT2 :D :D
 				    ]
                     dataset.append(datum)
 

@@ -93,10 +93,10 @@ def load_training_data(file_path, args, split_ratio=.25): # with test-train spli
     # This commented-out bit for if you want the validation data to be set aside as you train
     #   (recommended to just set it aside beforehand by using fewer than the total number of pkl's)
     #max_test = len(dataset[max_train:]) - int(split_ratio*len(dataset[max_train:]))
-    return NPIDataSet(dataset[:max_train],args), NPIDataSet(dataset[max_train:],args) #NPIDataSet(dataset[max_train:max_train+max_test]), NPIDataSet(dataset[max_train+max_test:])
+    return ClassDataSet(dataset[:max_train],args), ClassDataSet(dataset[max_train:],args) #ClassDataSet(dataset[max_train:max_train+max_test]), ClassDataSet(dataset[max_train+max_test:])
 
 
-class NPIDataSet(Dataset):
+class ClassDataSet(Dataset):
     def __init__(self, dataset, args):
         """
         Assumes input dataset is of the form:
