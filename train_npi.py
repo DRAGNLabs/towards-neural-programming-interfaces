@@ -340,7 +340,7 @@ class GPT2LMWithNPI(GPT2LMHeadModel):
     def initialize_npi(self, prediction_indices):
         self.perturbation_indices = prediction_indices # NPI added functionality
         # self.output_hidden_states = True
-        self.transformer = GPT2WithNPI.from_pretrained('gpt2')#(config, self.npi, self.prediction_indices) # NPI added functionality
+        self.transformer = GPT2WithNPI.from_pretrained(LANG_MODEL_TYPE)#(config, self.npi, self.prediction_indices) # NPI added functionality
         self.transformer.initialize_npi(prediction_indices)
         self.npi_model = None
         pass
@@ -426,7 +426,7 @@ class GPT2LMWithNPI(GPT2LMHeadModel):
 
                 # Now run the model
                 logits, presents, all_hiddens = self.forward(input_ids=tokens[:,-max_seq_len:], \
-                                                      activation_perturbations=curr_perturbs[i*len(self.perturbation_indices):(i+1)*len(self.perturbation_indices)]) # n8
+                                                      activation_perturbations=curr_perturbs[i*len(self.perturbation_indices):(i+1)*len(self.perturbation_indices)]) 
                                                                 # all_hiddens is a list of len
                                                                 # 25 or 13 with tensors of shape (gpt2 medium of small)
                                                                 # (1,sent_len,1024) or (1,sent_len,768)
@@ -451,7 +451,7 @@ class GPT2LMWithNPI(GPT2LMHeadModel):
 
             del tokens
 
-            # Now the big_array is a list of length (max_seq_len*2) of tensors with shape (1,max_seq_len,1024)
+            # Now the big_array is a list of length (max_seq_len*2) of tensors with shape (1,max_seq_len,1024) or (1,max_seq_len,768)
             # completing big_array
             big_array = torch.cat(big_array, dim=1)
             big_array = big_array.permute(1,2,0).view(1, n, m, 1)
@@ -573,7 +573,7 @@ class ContentClassifier(nn.Module): # classifies NPI outputs
         self.m = input_activs_shape[2]
         self.k = input_activs_shape[3]
 
-        self.l = input_targ_shape[2]
+        self.l = 1 # input_targ_shape[2]
 
         fact1 = 2**3
         fact2 = 2**3
@@ -651,7 +651,6 @@ class GenerationClassifier(nn.Module): # classifies NPI outputs
         self.m = input_activs_shape[2]
         self.k = input_activs_shape[3]
 
-        self.l = input_targ_shape[2]
         self.l = 1 
 
         fact1 = 2**3
@@ -1000,15 +999,15 @@ def train_adversarial_NPI(args): # train NPI and Classifiers in-tandem
         print("Creating ", npi_type, " npi")
         act0, _, targ0, _ = next(iter(train_loader)) 
         input_activs_shape = act0.size()
-        input_targ_shape = targ0.size()
+        input_targ_shape = (1,1) # targ0.size() <-- None
 
         npi_model, content_class_model, generate_class_model = load_models(args, input_activs_shape, input_targ_shape)
 
         print("Initializing GPT2WithNPI model with tokenizer -- not being placed on GPU until npi loss evaluation")
-        gpt2_with_npi = GPT2LMWithNPI.from_pretrained('gpt2') 
+        gpt2_with_npi = GPT2LMWithNPI.from_pretrained(args.language_model_type) # lang model type may be 'gpt2' or 'gpt2-medium'
         gpt2_with_npi = gpt2_with_npi.cuda() 
         gpt2_with_npi.initialize_npi(args.perturbation_indices) 
-        gpt2_tokenizer = GPT2Tokenizer.from_pretrained('gpt2') 
+        gpt2_tokenizer = GPT2Tokenizer.from_pretrained(args.language_model_type) 
 
         # CREATE LOSS FUNCTION
         print("Initializing npi loss func")
@@ -1062,7 +1061,7 @@ def train_adversarial_NPI(args): # train NPI and Classifiers in-tandem
             loop = tqdm(total=len(train_file_names), position=0, leave=False)
             for file_num, train_file_name in enumerate(train_file_names):
                 gc.collect()
-                train_data, test_data = load_training_data(train_file_path+train_file_name, args.perturbation_indices, split_ratio=.25, filter_unk=False, permitted_rows=None) # n8 val_data, _ and .25
+                train_data, test_data = load_training_data(train_file_path+train_file_name, args.perturbation_indices, split_ratio=.25, filter_unk=False, permitted_rows=None) # val_data, _ and .25
 
                 # CREATE TRAIN / TEST LOADERS
                 train_loader = NPIDataLoader(train_data, batch_size=batch_size, pin_memory=True)
@@ -1079,10 +1078,9 @@ def train_adversarial_NPI(args): # train NPI and Classifiers in-tandem
 
                     # prepare the batch for model processing
                     input_activs_shape = orig_activ.size()
-                    input_targ_shape = target_label.size()
-                    orig_activ, real_label, target_label = orig_activ.cuda(async=True).float(), \
-                                                            real_label.cuda(async=True).float(), \
-                                                            target_label.cuda(async=True).float()
+                    input_targ_shape = (1,1) # target_label.size() <-- this is None
+                    orig_activ, real_label = orig_activ.cuda(async=True).float(), \
+                                             real_label.cuda(async=True).float()
 
                     # ~~~~ TRAINING SEGMENT open ~~~~
 
@@ -1194,7 +1192,7 @@ def train_adversarial_NPI(args): # train NPI and Classifiers in-tandem
                 if generate_class_batch_losses: 
                     generate_class_epoch_losses.append((sum(generate_class_batch_losses) / float(len(generate_class_batch_losses))))
 
-                if epoch % test_freq == 0 and generate_class_train_batch_accuracies and epoch >= HEAD_START_NUM: # n8
+                if epoch % test_freq == 0 and generate_class_train_batch_accuracies and epoch >= HEAD_START_NUM: 
                     generate_class_train_accuracies.append((epoch, (sum(generate_class_train_batch_accuracies) / float(len(generate_class_train_batch_accuracies)))))
 
                 # TESTING 
@@ -1453,9 +1451,9 @@ def train_adversarial_NPI(args): # train NPI and Classifiers in-tandem
             pkl.dump({"epoch_losses": generate_class_epoch_losses, 
                         "false_tests": generate_false_class_tests, 
                         "avg_tests": generate_class_tests, 
-                        "training_accuracies": generate_class_train_accuracies, # n8+MD
+                        "training_accuracies": generate_class_train_accuracies, 
                         "false_test_accuracies": generate_class_false_test_accuracies, 
-                        "avg_test_accuracies": generate_class_test_accuracies, # n8+MD
+                        "avg_test_accuracies": generate_class_test_accuracies, 
                         "sample_meta_data": class_sample_meta_data, 
                         }, outfile)
 
@@ -1536,105 +1534,108 @@ def train_adversarial_NPI(args): # train NPI and Classifiers in-tandem
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
-    parser.add_argument("--save_file_path", 
+    parser.add_argument("--save-file-path", 
                         default="npi_models/", 
                         help="/path/to/save/model/to/")
-    parser.add_argument("--train_file_path", 
+    parser.add_argument("--train-file-path", 
                         default=None, 
                         help="/path/to/training/dataset/")
-    parser.add_argument("--npi_lr", 
+    parser.add_argument("--npi-lr", 
                         type=float, 
                         default=1e-6, # -- CHANGED from 1e-4 05/11/2020 at 10:07pm
                         help="npi learning rate")
-    parser.add_argument("--disc_lr", 
+    parser.add_argument("--disc-lr", 
                         type=float, 
                         default=1e-6, 
                         help="(generation) classifiers' learning rate")
-    parser.add_argument("--language_model_type", 
+    parser.add_argument("--language-model-type", 
                         default='gpt2', 
                         help="one of: [gpt2, gpt2-medium]")
-                        # KOMYA
-    parser.add_argument("--num_epochs", 
+    parser.add_argument("--num-epochs", 
                         type=int, 
                         default=60, 
                         help="number of epochs to train for")
-    parser.add_argument("--batch_size", 
+    parser.add_argument("--batch-size", 
                         type=int, 
                         default=5, 
                         help="number of language model generated sequences to put into each training batch")
-    parser.add_argument("--test_freq", 
+    parser.add_argument("--test-freq", 
                         type=int, 
                         default=5, 
                         help="test every test_freq batches")
-    parser.add_argument("--save_freq", 
+    parser.add_argument("--save-freq", 
                         type=int, 
                         default=10, 
                         help="save the model during training every save_freq epochs")
-
-    parser.add_argument("--npi_type", 
+    parser.add_argument("--npi-type", 
                         default='adversarial', 
                         help="one of: [pretrained, adversarial]")
-    parser.add_argument("--content_classifier_type", 
+    parser.add_argument("--content-classifier-type", 
                         default='pretrained', 
                         help="one of: [pretrained, adversarial]")
-    parser.add_argument("--generation_classifier_type", 
+    parser.add_argument("--generation-classifier-type", 
                         default='adversarial', 
                         help="one of: [pretrained, adversarial]")
-    parser.add_argument("--npi_model_path", 
+    parser.add_argument("--npi-model-path", 
                         default=None, 
                         help="/path/to/optional_pretrained_npi.bin")
-    parser.add_argument("--content_classifier_path", 
-                        default=None, 
+    parser.add_argument("--content-classifier-path", 
+                        default="classifiers/layers_5_11/Classifier_classification_network_epoch50.bin",
+                        # ^ CHANGE this if a different classifier performed better when you ran test_classifier script
                         help="/path/to/optional_content_classifier.bin")
-    parser.add_argument("--generation_classifier_path", 
+    parser.add_argument("--generation-classifier-path", 
                         default=None, 
                         help="/path/to/optional_generation_classifier.bin")
-    parser.add_argument("--update_pretrained_npi", 
-                        type=bool, 
-                        default=True, 
-                        help="Whether or not to update npi weights with backprop")
-    parser.add_argument("--update_pretrained_content_classifier", 
-                        type=bool, 
-                        default=False, 
-                        help="Whether or not to update content_classifier weights with backprop")
-    parser.add_argument("--update_pretrained_generation_classifier", 
-                        type=bool, 
-                        default=True, 
-                        help="Whether or not to update generation_classifier weights with backprop")
-    parser.add_argument("--num_pkls", # n8
+    # parser.add_argument("--update-pretrained-npi", 
+    #                     type=bool, 
+    #                     default=True, 
+    #                     help="Whether or not to update npi weights with backprop")
+    # parser.add_argument("--update-pretrained-content-classifier", 
+    #                     type=bool, 
+    #                     default=False, 
+    #                     help="Whether or not to update content_classifier weights with backprop")
+    # parser.add_argument("--update-pretrained-generation-classifier", 
+    #                     type=bool, 
+    #                     default=True, 
+    #                     help="Whether or not to update generation_classifier weights with backprop")
+    parser.add_argument("--num-pkls", 
                         type=int,
-                        default=305,
+                        default=53,
                         help="Number of training data files")
-    parser.add_argument("--gpu_num", # n8 # NOTE: does not work yet
+    parser.add_argument("--gpu-num", # NOTE: not implemented fully
                         type=int,
                         default=0,
-                        help="Which GPU to use: either 0 or 1")
-    parser.add_argument("--discrim_coeff", # n8
+                        help="Which GPU to use")
+    parser.add_argument("--discrim-coeff", # gamma
                         type=float,
-                        default=1.0,
-                        help="Discriminator loss coefficient")
-    parser.add_argument("--style_coeff", # n8
+                        default=3.0,
+                        help="Discriminator (or 'Generation Classifer') loss coefficient")
+    parser.add_argument("--style-coeff", # alpha
                         type=float,
-                        default=1.0,
+                        default=10.0,
                         help="Content classifier loss coefficient")
-    parser.add_argument("--similarity_coeff", # n8
+    parser.add_argument("--similarity-coeff", # beta
                         type=float,
                         default=1.0,
                         help="MSE similarity loss coefficient")
-    parser.add_argument("--head_start_num", # n8
+    parser.add_argument("--head-start-num",
                         type=int,
-                        default=0,
+                        default=5,
                         help="Give the NPI this many epochs of head start on the discriminator")
-    parser.add_argument("--first_perturbation_index", # n8
+    pparser.add_argument("--perturbation-indices",
+                        type=str,
+                        default="5,11",
+                        help="indices for layers to extract from language model activations: string of numbers separated by commas")
+    parser.add_argument("--max-seq-len",
                         type=int,
-                        default=0,
-                        help="Which index for the first layer of the GPT2 hidden states that we want to perturb?")
-    parser.add_argument("--second_perturbation_index", # n8
+                        default=10,
+                        help="Length of tokens list to pass through language model")
+    parser.add_argument("--max-seq-iters",
                         type=int,
-                        default=0,
-                        help="Which index for the second layer of the GPT2 hidden states that we want to perturb?")
+                        default=10,
+                        help="Number of times to run text through language model iteratively")
 
-    parser.add_argument("--no_cuda", action='store_true',
+    parser.add_argument("--no-cuda", action='store_true',
                         help="Avoid using CUDA when available")
 
     args = parser.parse_args()
@@ -1643,19 +1644,25 @@ if __name__ == "__main__":
     args.n_gpu = torch.cuda.device_count()
     torch.cuda.empty_cache()
 
-    #discrim_coeffs = [args.discrim_coeff] # n8
-    #style_coeffs = [args.style_coeff] # n8
-    #similarity_coeffs = [args.similarity_coeff] # n8
-    args.perturbation_indices = [args.first_perturbation_index, args.second_perturbation_index]#[0,1] # n8
-    args.max_seq_len=10 # n8
-    args.num_seq_iters=10 # n8 added
+    #discrim_coeffs = [args.discrim_coeff] # for grid search
+    #style_coeffs = [args.style_coeff] 
+    #similarity_coeffs = [args.similarity_coeff] 
 
-    #best_min_epoch_loss = None
+    # format perturbation indices correctly
+    args.perturbation_indices = [int(pi) for pi in args.perturbation_indices.split(',')]
+    # construct file directory suffix
+    dir_suffix = ""
+    for pi in pis:
+        dir_suffix = dir_suffix + "_" + str(pi)
+
+    #best_min_epoch_loss = None # These var's for grid search
     #best_discrim_coeff = None
     #best_style_coeff = None
     #best_similarity_coeff = None
 
-    # Just creating save directory here
+    # Just creating save directory here, if it doesn't exist
+    #   First make sure it is formatted correctly
+    args.save_file_path = args.save_file_path if args.save_file_path[-1] == '/' else args.save_file_path + '/'
     orig_save_file_path = args.save_file_path
     split_file_path = orig_save_file_path.split('/')
     gradual_path = ""
@@ -1663,18 +1670,24 @@ if __name__ == "__main__":
         gradual_path = gradual_path + path_elem + "/"
         if not os.path.exists(gradual_path):
                 os.mkdir(gradual_path)
+    
+    # language model type should be global
+    global LANG_MODEL_TYPE
+    LANG_MODEL_TYPE = args.language_model_type
 
     #grid_search_iter = 0
-    if True: #for coeffs in coeffs_hyperparam_list:
+    if True: #for coeffs in coeffs_hyperparam_list: # Commented out because we don't want a grid search
         if True:#for layers in layers_hyperparam_list:
 
-            args.save_file_path = orig_save_file_path + "params_discco{}_styco{}_simco{}_layers_{}_{}/".format(args.discrim_coeff, args.style_coeff, \
-                                                                                args.similarity_coeff, args.first_perturbation_index, args.second_perturbation_index)
+            args.save_file_path = orig_save_file_path + "params_discco{}_styco{}_simco{}_layers{}/".format(args.discrim_coeff, args.style_coeff, \
+                                                                                args.similarity_coeff, dir_suffix)
+            # Finish making save directory
             if not os.path.exists(args.save_file_path):
                 os.mkdir(args.save_file_path)
 
             try:
                 torch.cuda.empty_cache()
+                # Main event:
                 npi_model, content_classifier_model, generation_classifier_model, avg_epoch_loss = train_adversarial_NPI(args)
             
                 out_path = args.save_file_path+"{}_npi_vfinal.bin".format(args.npi_type)
