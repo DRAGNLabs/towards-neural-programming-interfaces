@@ -1,3 +1,14 @@
+#             Test content classifiers to             #
+#            make sure they are working well          #
+#           enough to be used in NPI training         #
+#           (Accuracy should be very high:            #
+#                 ideally 99% or more)                #
+#                                                     #
+#           Fulda, Brown, Wingate, Robinson           #
+#                        DRAGN                        #
+#                     NPI Project                     #
+#                        2020                         #
+
 import pickle as pkl
 import torch
 import numpy as np
@@ -10,42 +21,50 @@ import argparse
 
 if __name__ == "__main__":
 
-    """
-    command line:
-    nvidia-docker run -d --name test_chase -v /raid/remote/name:/raid/remote/name -v /mnt/server -e NVIDIA_VISIBLE_DEVICES=10 nvcr.io/nvidia/pytorch:19.10-py3 python3 /raid/remote/name.py &> foo.log &
-        """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model-dir-path", 
+                        default="classifiers/layers_5_11/", 
+                        help="path to directory containing classifiers")
+    parser.add_argument("--data-path", 
+                        default="data/sentence_arrays", 
+                        help="path to data (standard file name witout pkl suffix, full or relative file path)")
+    parser.add_argument("--test-pkls",
+                        type=str,
+                        default="53,54,55,56", # See NOTE in arg-parsing section of train_classifier.py (line 378)
+                        help="pkl numbers for data designated for testing: string of numbers separated by commas")
+    parser.add_argument("--test-epochs",
+                        type=str,
+                        default="20,30,40,50,60,70",
+                        help="epoch nums for class'n models we want to test: string of numbers separated by commas")
+    parser.add_argument("--perturbation-indices",
+                        type=str,
+                        default="5,11",
+                        help="indices for layers to extract from language model activations: string of numbers separated by commas")
+    
 
-    """Political figure
-    --file_path_base /raid/remote/name/ --data_path_base /raid/remote/data.pkl_ --test_start_num 34 --test_end_num 39 --epoch_num 20
-    """
-    """RACIST
-    --file_path_base  /raid/remote/classifier/ --data_path_base /raid/remote/data/ --test_start_num 25 --test_end_num 29 --epoch_num 90
-    """
-    """OFFENSE
-    --num_pkls 11 --first_perturbation_index 5 --second_perturbation_index 11 --save_file_path /raid/remote/name/ --train_file_path_base /raid/remote/data/
-    """
+    args = parser.parse_args()
 
-    EPOCH_NUM_LIST = [20, 30, 40, 50, 60, 70]
-    FILE_PATH_LIST = ["./classifiers/layers_5_11/"] * len(EPOCH_NUM_LIST)
+    EPOCH_NUM_LIST = [int(pi) for pi in args.test_epochs.split(',')]
+    FILE_PATH_LIST = [args.model_dir_path] * len(EPOCH_NUM_LIST)
 
     for classifier_num in range(len(EPOCH_NUM_LIST)):
-        EPOCH_NUM = EPOCH_NUM_LIST[classifier_num]
-        TEST_NUMS = [53, 54, 55, 56] # these pickles are designated for testing!!
-        FILE_PATH = FILE_PATH_LIST[classifier_num]
-        DATA_PATH = "./data/sentence_arrays"
+        epoch_num = EPOCH_NUM_LIST[classifier_num]
+        test_nums = [int(pi) for pi in args.test_pkls.split(',')] # these pickles are designated for testing!!
+        file_path = FILE_PATH_LIST[classifier_num]
+        data_path = args.data_path
         
-        PRED_INDS = [5,11]
-        print("NEW FILE",FILE_PATH,"epoch num",EPOCH_NUM,flush=True)
+        PRED_INDS = [int(pi) for pi in args.perturbation_indices.split(',')]
+        print("NEW FILE",file_path,"epoch num",epoch_num,flush=True)
 
         # Load classifier
-        classifier = torch.load(FILE_PATH+"Classifier_classification_network_epoch{}.bin".format(EPOCH_NUM),map_location=torch.device('cpu')).cuda()
+        classifier = torch.load(file_path+"Classifier_classification_network_epoch{}.bin".format(epoch_num),map_location=torch.device('cpu')).cuda()
         #   We load the model from the CPU just in case it was trained on a different GPU than the one we are using
 
         collected_accs = []
         # collected_alt_accs = []
 
-        for test_num in TEST_NUMS:
-            with open(DATA_PATH+".pkl_{}".format(test_num),'rb') as f:
+        for test_num in test_nums:
+            with open(data_path+".pkl_{}".format(test_num),'rb') as f:
                 money = pkl.load(f)
 
             score = 0

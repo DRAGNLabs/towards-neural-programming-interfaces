@@ -1,3 +1,6 @@
+#        This script requires tailoring        #
+#                to be used                    #
+
 import numpy as np
 import torch
 
@@ -216,8 +219,6 @@ if __name__ == "__main__":
 
     target_word = "word"
 
-    
-
     NPIs_to_test = [
             "/npi_network.bin",
             ]
@@ -241,7 +242,7 @@ if __name__ == "__main__":
 
         print("")
         print("##########################################################")
-        print("#### About to start testing for {} with perterub indices {}, test nubmer {} #####".format(path_to_npi, perturbation_indices, ind))
+        print("#### About to start testing for {} with perturb indices {}, test nubmer {} #####".format(path_to_npi, perturbation_indices, ind))
         print("#########################################################")
         print("")
     
