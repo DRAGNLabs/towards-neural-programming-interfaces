@@ -1,39 +1,35 @@
+#             Test NPI models to see which            #
+#              has the best performance               #
+#                                                     #
+#           Fulda, Brown, Wingate, Robinson           #
+#                        DRAGN                        #
+#                     NPI Project                     #
+#                        2020                         #
+
 import numpy as np
 import torch
 
 from transformers import *
 import run_generation as rg
 from torch.nn import functional as F
-import copy_of_train_npi_forn8_MAY15 as npi
-from train_offense_gan_MAY29_class_updates_GPU1 import NPINetwork, GenerationClassifier
-
-from train_offense_gan_MAY29_class_updates_GPU1 import GPT2WithNPI, GPT2LMWithNPI
+from train_npi import NPINetwork, GenerationClassifier, GPT2WithNPI, GPT2LMWithNPI
 
 import pdb
 import pickle as pkl
 
 #big_text_file = "smaller_wiki_books_reddit_shuffled.txt"
-off_txt_pkl = "data/sexist_sents_1000.pkl"
+off_txt_pkl = "data/sexist_sents_1000.pkl" # VAR
 
-offensive_words_document = "data/sexist_terms.txt"
+offensive_words_document = "data/sexist_terms.txt" # VAR
 with open(offensive_words_document,'r') as f:
     OFFENSIVE_WORDS = f.readlines()
 OFFENSIVE_WORDS = [word.strip('\n') for word in OFFENSIVE_WORDS]
-
-def my_accuracy(x, y):
-    x, y = x.squeeze().data.cpu().numpy(), y.squeeze().data.cpu().numpy()
-    x = np.array([round(xi) for xi in x])
-    y = np.array([round(yi) for yi in y])
-    if len(x) != 0:
-        return len(x[x==y])/len(x)
-    else:
-        return 0.
 
 def count_offensive(sent):
     sent = sent.lower()
     offense_count = 0
     for word in OFFENSIVE_WORDS:
-        if word in sent:
+        if word.lower() in sent:
             offense_count += sent.count(word)
     return offense_count
 
@@ -205,11 +201,12 @@ def generate_text_with_NPI(in_text, lm_model, vanilla_lm_model, tokenizer, pertu
 
 if __name__ == "__main__":
 
-    target_word = "cat"
+    # target_word = "cat" # this line for individual word NPI testing
+    target_word = "SEXIST-TERMS" # default
 
-    # EDIT this section for desired model paths (to test)
+    # EDIT this next section for desired model paths (to test)
 
-    NPIs_to_test = [
+    NPIs_to_test = [ # VAR
             "npi_models/params_discco2.0_styco10.0_simco0.0_layers_2_9/adversarial_npi_network_epoch20.bin", 
             "npi_models/params_discco2.0_styco10.0_simco0.0_layers_2_9/adversarial_npi_network_epoch30.bin",
             "npi_models/params_discco2.0_styco10.0_simco0.0_layers_2_9/adversarial_npi_network_epoch40.bin",
@@ -218,25 +215,24 @@ if __name__ == "__main__":
             ]
 
     pis_list = [
-            [5,11], 
-            ] * len(NPIs_to_test) # KOMYA
-
-    #path_to_npi = "/home/nate/MODELS/npi_proj/gan_GS/params_discco1_styco10_simco1_layers_5_11/adversarial_npi_network_epoch50.bin"
-    #path_to_npi = "/home/nate/MODELS/npi_proj/gan_GS_FIXED/params_discco3.0_styco10.0_simco1.0_layers_0_6/adversarial_npi_network_epoch100.bin"
+            [5,11], # VAR
+            ] * len(NPIs_to_test)
+    
+    OUTPUT_DIR = 'sexism_test_data' # VAR
     
     for ind, (path_to_npi, perturbation_indices) in enumerate(zip(NPIs_to_test, pis_list)):
 
         print("")
         print("##########################################################")
-        print("#### About to start testing for {} with perterub indices {}, test nubmer {} #####".format(path_to_npi, perturbation_indices, ind))
+        print("#### About to start testing for {} with perterub indices {}, test number {} #####".format(path_to_npi, perturbation_indices, ind))
         print("#########################################################")
         print("")
 
-        #user_input = ""#input("Press ENTER to proceed or type 'stop' to quit: ")
-        #if 'stop' in user_input.lower() or 'quit' in user_input.lower():
-        #    raise KeyboardInterrupt("System quit by user")
+        # user_input = input("Press ENTER to proceed or type 'stop' to quit: ")
+        # if 'stop' in user_input.lower() or 'quit' in user_input.lower():
+        #     raise KeyboardInterrupt("System quit by user")
 
-        outfile_name = 'offense_data/' + str(ind) + 'f'
+        outfile_name = OUTPUT_DIR + '/' + str(ind) 
         f = open(outfile_name + '_counts.txt', 'w')
         f.write(path_to_npi)
         f.write('\n')
@@ -253,39 +249,35 @@ if __name__ == "__main__":
         vanilla_lm_model = vanilla_lm_model.cuda()
         npi_lm_model = npi_lm_model.cuda()
 
-        in_texts_list = ["We're not going to be able to do that",
-                        "How",
-                        "Hello how are you",
-                        "The first type",
-                        "I like fish",
-                        "Cats appeared in the alley",
-                        "The supernova eclipsed"
-                        ]
-
+        # Text prompts for language generation we pull from a corpus
         in_texts_list = []
 
+        # In the default setting, the task is avoidance of sexist terms, so we 
+        # use a special corpus of sentences that cause a high frequency of sexist
+        # terms with vanilla settings to show NPI ability to counteract.
+        # In word induction tasks, simply use a generic corpus. 
+        # Default corpus: data/sexist_sents_1000.pkl (Look near line 16)
         with open(off_txt_pkl,'rb') as f:
-            total_sents = pkl.load(f)#f.read().split(SYMBOL)
-
+            total_sents = pkl.load(f)
             iterator = 0
             for line in total_sents:
                 if len(line) < 3 or len(line) > 1000:
                     continue
                 in_texts_list.append(line)
                 iterator += 1
-                if iterator > 1000:
+                if iterator > 1000: # VAR
                     break
             del total_sents
  
         total_examples_evaluated = 0
 
-        total_input_count = 0
-        total_vanilla_count = 0
-        total_perturbed_count = 0
+        total_input_count = 0 # count of outputs that contain target word
+        total_vanilla_count = 0 # count of outputs that contain target word
+        total_perturbed_count = 0 # count of outputs that contain target word
 
-        input_instances = 0
-        vanilla_instances = 0
-        perturbed_instances = 0
+        input_instances = 0 # count of appearances of a target word
+        vanilla_instances = 0 # count of appearances of a target word
+        perturbed_instances = 0 # count of appearances of a target word
 
         switched_to_target = 0
         switched_from_target = 0
@@ -294,7 +286,7 @@ if __name__ == "__main__":
         num_perturbed_degenerate = 0
    
 
-        for in_text in in_texts_list[:1000]:
+        for in_text in in_texts_list[:1000]: # VAR
 
             vanilla_text = generate_text(in_text, vanilla_lm_model, tokenizer)
             perturbed_text = generate_text_with_NPI(in_text, npi_lm_model, vanilla_lm_model, tokenizer, perturbation_indices, npi_model)
@@ -313,28 +305,27 @@ if __name__ == "__main__":
             vanilla_instance = 0
             perturbed_instance = 0
 
-
-            #total count
+            # count total
             total_examples_evaluated += 1
             print("")
 
             # count instances of target and target-plural in outpus
-            total_input_count += in_text.lower().count(target_word.lower())
-            total_vanilla_count += vanilla_text.lower().count(target_word.lower())
-            total_perturbed_count += perturbed_text.lower().count(target_word.lower())
+            total_input_count += count_offensive(in_text.lower().replace(".", " ").replace("!"," ").replace("?"," "))
+            total_vanilla_count += count_offensive(vanilla_text.lower().replace("."," ").replace("!"," ").replace("?"," "))
+            total_perturbed_count += count_offensive(perturbed_text.lower().replace("."," ").replace("!"," ").replace("?"," "))
 
-            # check for existence of target and target-plural in input and output
-            if count_offensive(in_text.lower().replace(".", " ").replace("!"," ").replace("?"," ")):
+            # check for existence of target in input and output
+            if total_input_count:
                 input_instances += 1
                 input_instance = 1
-            if count_offensive(vanilla_text.replace("."," ").replace("!"," ").replace("?"," ")):
+            if total_vanilla_count:
                 vanilla_instances += 1
                 vanilla_instance = 1
-            if count_offensive(perturbed_text.lower().replace("."," ").replace("!"," ").replace("?"," ")):
+            if total_perturbed_count:
                 perturbed_instances += 1
                 perturbed_instance = 1
 
-            # determine switched-to and switched-from
+            # determine switched-to and switched-from 
             if not vanilla_instance and perturbed_instance:
                 switched_to_target += 1
             if vanilla_instance and not perturbed_instance:
@@ -370,7 +361,7 @@ if __name__ == "__main__":
             with open(outfile_name + '_counts.txt', 'a') as f:
                 f.write("total_examples_evaluated %d, total_vanilla_count %d, total_perturbed_count %d, input_instances %d, vanilla_instances %d, perturbed_instances %d, switched_to_target %d, switched_from_target %d, num_vanilla_degenerate %d, num_perturbed_degenerate %d \n"%(total_examples_evaluated, total_vanilla_count, total_perturbed_count, input_instances, vanilla_instances, perturbed_instances, switched_to_target, switched_from_target, num_vanilla_degenerate, num_perturbed_degenerate))
                 f.write('\n')
-            print("model name", outfile_name)
+            print("model outfile name", outfile_name)
             print("total_examples_evaluated", total_examples_evaluated)
             print("total_perturbed_count", total_perturbed_count)
             print("total_vanilla_count", total_vanilla_count)

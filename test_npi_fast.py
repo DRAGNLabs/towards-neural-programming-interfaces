@@ -1,3 +1,6 @@
+#        This script requires tailoring        #
+#                to be used                    #
+
 import numpy as np
 import torch
 
@@ -215,8 +218,6 @@ def generate_text_with_NPI(in_text, lm_model, vanilla_lm_model, tokenizer, pertu
 if __name__ == "__main__":
 
     target_word = "word"
-
-    
 
     NPIs_to_test = [
             "/npi_network.bin",

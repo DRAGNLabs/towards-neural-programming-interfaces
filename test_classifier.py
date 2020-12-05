@@ -1,3 +1,14 @@
+#             Test content classifiers to             #
+#            make sure they are working well          #
+#           enough to be used in NPI training         #
+#           (Accuracy should be very high:            #
+#                 ideally 99% or more)                #
+#                                                     #
+#           Fulda, Brown, Wingate, Robinson           #
+#                        DRAGN                        #
+#                     NPI Project                     #
+#                        2020                         #
+
 import pickle as pkl
 import torch
 import numpy as np

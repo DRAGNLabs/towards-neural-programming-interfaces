@@ -1,14 +1,18 @@
-"""
-Neural Program Interfaces (NPI's) Draft 1
+#         Train Neural Programming Interfaces       #
+#                                                   #
+#     Adversarially in tandem with discriminator    #
+#            (or 'Generation Classifier')           #
+#                                                   #
+#          Fulda, Brown, Wingate, Robinson          #
+#                       DRAGN                       #
+#                    NPI Project                    #
+#                       2020                        #
 
+"""
 Overview:
-    Classifier Code:
+    Classifiers:
         - Includes functionality for either training in-tandem with NPI or not
         - Includes functionality for loading pretrained classifiers
-    NPI Code:
-        - Includes functionality for:
-            - Convolutional NPI
-            - Inputting desired class label vector
     Style Transfer Inspired Adversarial Loss
     Functionality for controlling various network activations:
         - Supported neural models:
@@ -17,6 +21,7 @@ Overview:
         - Not part of the NPI class, allows for reshaping generated 'controlled' 
           activations and running them through a given neural model
 """
+
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 import run_generation as rg
 
