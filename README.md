@@ -51,7 +51,7 @@ python train_npi.py
 To evaluate an NPI model, run this command:
 
 ```classifier
-python evaluate_npi_fast.py
+python test_npi.py
 ```
 
 ## Pre-trained Models
