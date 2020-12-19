@@ -1,4 +1,4 @@
-# Towards Neural Program Interfaces
+# Towards Neural Programming Interfaces
 
 This repository is the official implementation of "Towards Neural Programming Interfaces" (to be published and presented in NeurIPS 2020 proceedings). 
 
@@ -69,9 +69,9 @@ Our model achieves the following performance on :
 
 | Model name         | Target in output with NPI  | Target in output without |
 | ------------------ |--------------------------- | ------------------------ |
-| Sexist slur avoid. |          48.8%             |           0.0%           |
+| Sexist slur avoid. |          10.3%             |          90.2%           |
 | Racist slur avoid. |           0.5%             |          52.1%           |
-| Cat induction      |          10.3%             |          90.2%           |
+| Cat induction      |          48.8%             |           0.0%           |
 | Cat avoid.         |          11.2%             |          38.8%           |
 
 Running the scripts with default parameters as described here should reproduce the sexist slur results.
