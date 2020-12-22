@@ -340,11 +340,11 @@ class GPT2LMWithNPI(GPT2LMHeadModel):
 
         GPT2LMHeadModel.__init__(self, config)  # NPI added functionality
 
-    def initialize_npi(self, prediction_indices):
+    def initialize_npi(self, prediction_indices, lang_model_type='gpt2'):
         self.perturbation_indices = prediction_indices  # NPI added functionality
         # self.output_hidden_states = True
         self.transformer = GPT2WithNPI.from_pretrained(
-            LANG_MODEL_TYPE)  # (config, self.npi, self.prediction_indices) # NPI added functionality
+            lang_model_type)  # (config, self.npi, self.prediction_indices) # NPI added functionality
         self.transformer.initialize_npi(prediction_indices)
         self.npi_model = None
 
@@ -1008,7 +1008,7 @@ def train_adversarial_NPI(args):  # train NPI and Classifiers in-tandem
         gpt2_with_npi = GPT2LMWithNPI.from_pretrained(
             args.language_model_type)  # lang model type may be 'gpt2' or 'gpt2-medium'
         gpt2_with_npi = gpt2_with_npi.cuda()
-        gpt2_with_npi.initialize_npi(args.perturbation_indices)
+        gpt2_with_npi.initialize_npi(args.perturbation_indices, lang_model_type=args.language_model_type)
         gpt2_tokenizer = GPT2Tokenizer.from_pretrained(args.language_model_type)
 
         # CREATE LOSS FUNCTION

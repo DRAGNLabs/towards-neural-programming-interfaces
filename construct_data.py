@@ -59,7 +59,7 @@ if __name__ == "__main__":
         (dict): dictionary mapping sentences to big_array's
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mixed_sentence_file",
+    parser.add_argument("--mixed-sentence-file",
                         default="./smaller_wiki_books_reddit_shuffled.txt",
                         help="corpus from which to pull sentences; may be mixed with sentences that display target behavior to increase likelihood of production from GPT-2 and possibly expedite data set production"
 
