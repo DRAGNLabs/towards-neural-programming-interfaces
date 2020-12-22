@@ -15,7 +15,7 @@ import pickle as pkl
 import numpy as np
 import torch
 
-from .train_classifier import extract_needed_layers
+from .train_classifier import Classifier, extract_needed_layers
 
 if __name__ == "__main__":
 
@@ -100,3 +100,4 @@ if __name__ == "__main__":
         print('done')
         print("TOTAL ACCURACY OVERALL:", avg_acc)
         # print("TOTAL ALT-ACCURACY OVERALL:",avg_alt_acc)
+        print("\n================================================\n", flush=True)

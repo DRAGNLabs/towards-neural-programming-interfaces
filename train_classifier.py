@@ -19,8 +19,11 @@ Overview:
 import argparse
 import gc
 import random as rand
+import pickle as pkl
+import os
 
 import numpy as np
+import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
@@ -120,8 +123,7 @@ class ClassDataSet(Dataset):
                 extract_needed_layers(self.dataset[i][self.ORIG_ACTIV_INDEX], pis=args.pred_inds))
             self.dataset[i][self.ORIG_LABEL_INDEX] = torch.from_numpy(
                 self.dataset[i][self.ORIG_LABEL_INDEX])  # .type(torch.FloatTensor)
-            self.dataset[i][self.TARG_LABEL_INDEX] = torch.from_numpy(
-                np.array(self.dataset[i][self.TARG_LABEL_INDEX]))  # .type(torch.FloatTensor)
+            self.dataset[i][self.TARG_LABEL_INDEX] = torch.tensor([])  # .type(torch.FloatTensor)
 
     def __getitem__(self, i):
         acts = self.dataset[i][self.ORIG_ACTIV_INDEX]  # .type(torch.FloatTensor)

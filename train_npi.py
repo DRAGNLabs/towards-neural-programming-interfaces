@@ -25,16 +25,22 @@ Overview:
 import argparse
 import gc
 import time
+import pickle as pkl
+import os
 
 import numpy as np
+import torch
 import torch.nn as nn
+import torch.nn.functional as F
+from torch.nn import CrossEntropyLoss
 import torch.optim as optim
-from matplotlib import pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
+from matplotlib import pyplot as plt
 
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 from .modeling_neural_program_interfaces import *
-from .train_classifier import extract_needed_layers
+from .train_classifier import Classifier, extract_needed_layers
 from .utils import top_k_top_p_filtering
 
 torch.manual_seed(1)
@@ -59,7 +65,7 @@ def my_accuracy(x, y):
         return 0.
 
 
-def load_training_data(file_path, pred_inds, split_ratio=.25, permitted_rows=None):  # with test-train split
+def load_training_data(file_path, pred_inds, split_ratio=.25):  # with test-train split
     with open(file_path, 'rb') as datafile:
         dataset = pkl.load(datafile)
 
@@ -119,6 +125,7 @@ class NPIDataSet(Dataset):
                     self.dataset[i][self.ORIG_ACTIV_INDEX], pis=pred_inds)).double()
             self.dataset[i][self.ORIG_LABEL_INDEX] = torch.from_numpy(
                 np.array(self.dataset[i][self.ORIG_LABEL_INDEX])).double()
+            self.dataset[i][self.TARG_LABEL_INDEX] = torch.tensor([])  # empty tensor
         pass
 
     def __getitem__(self, i):
@@ -339,11 +346,11 @@ class GPT2LMWithNPI(GPT2LMHeadModel):
 
         GPT2LMHeadModel.__init__(self, config)  # NPI added functionality
 
-    def initialize_npi(self, prediction_indices):
+    def initialize_npi(self, prediction_indices, lang_model_type='gpt2'):
         self.perturbation_indices = prediction_indices  # NPI added functionality
         # self.output_hidden_states = True
         self.transformer = GPT2WithNPI.from_pretrained(
-            LANG_MODEL_TYPE)  # (config, self.npi, self.prediction_indices) # NPI added functionality
+            lang_model_type)  # (config, self.npi, self.prediction_indices) # NPI added functionality
         self.transformer.initialize_npi(prediction_indices)
         self.npi_model = None
 
@@ -990,7 +997,7 @@ def train_adversarial_NPI(args):  # train NPI and Classifiers in-tandem
         print("Loading Data")
         print("<<<<<<<<< NOT FILTERING DATA -- ASSUMING RELATIVE CLASS BALANCE >>>>>>>>>>")
         train_data, _ = load_training_data(train_file_path + train_file_names[0], args.perturbation_indices,
-                                           split_ratio=.25, filter_unk=False, permitted_rows=None)  # _, _, _ and .25
+                                           split_ratio=.25)  # _, _, _ and .25
 
         # CREATE TRAIN LOADER
         train_loader = NPIDataLoader(train_data, batch_size=batch_size, pin_memory=True)
@@ -1007,7 +1014,7 @@ def train_adversarial_NPI(args):  # train NPI and Classifiers in-tandem
         gpt2_with_npi = GPT2LMWithNPI.from_pretrained(
             args.language_model_type)  # lang model type may be 'gpt2' or 'gpt2-medium'
         gpt2_with_npi = gpt2_with_npi.cuda()
-        gpt2_with_npi.initialize_npi(args.perturbation_indices)
+        gpt2_with_npi.initialize_npi(args.perturbation_indices, lang_model_type=args.language_model_type)
         gpt2_tokenizer = GPT2Tokenizer.from_pretrained(args.language_model_type)
 
         # CREATE LOSS FUNCTION
@@ -1063,8 +1070,7 @@ def train_adversarial_NPI(args):  # train NPI and Classifiers in-tandem
             for file_num, train_file_name in enumerate(train_file_names):
                 gc.collect()
                 train_data, test_data = load_training_data(train_file_path + train_file_name, args.perturbation_indices,
-                                                           split_ratio=.25, filter_unk=False,
-                                                           permitted_rows=None)  # val_data, _ and .25
+                                                           split_ratio=.25)  # val_data, _ and .25
 
                 # CREATE TRAIN / TEST LOADERS
                 train_loader = NPIDataLoader(train_data, batch_size=batch_size, pin_memory=True)
@@ -1220,7 +1226,7 @@ def train_adversarial_NPI(args):  # train NPI and Classifiers in-tandem
                 # TESTING 
 
                 if epoch % test_freq == 0 and epoch >= HEAD_START_NUM:  # and epoch >= 1: # AFTER TRAINING PERFORM ANY REQUIRED TESTS
-                    print("Testing: START")
+                    # print("Testing: START")
                     # perform npi_model testing
                     npi_test_batch_losses = []
                     content_class_test_losses = []
@@ -1588,7 +1594,7 @@ if __name__ == "__main__":
                         default="npi_models/",
                         help="/path/to/save/model/to/")
     parser.add_argument("--train-file-path",
-                        default=None,
+                        default="data/sentence_arrays",
                         help="/path/to/training/dataset/")
     parser.add_argument("--npi-lr",
                         type=float,
@@ -1680,7 +1686,7 @@ if __name__ == "__main__":
                         type=int,
                         default=10,
                         help="Length of tokens list to pass through language model")
-    parser.add_argument("--max-seq-iters",
+    parser.add_argument("--num-seq-iters",
                         type=int,
                         default=10,
                         help="Number of times to run text through language model iteratively")
@@ -1702,7 +1708,7 @@ if __name__ == "__main__":
     args.perturbation_indices = [int(pi) for pi in args.perturbation_indices.split(',')]
     # construct file directory suffix
     dir_suffix = ""
-    for pi in pis:
+    for pi in args.perturbation_indices:
         dir_suffix = dir_suffix + "_" + str(pi)
 
     # best_min_epoch_loss = None # These var's for grid search

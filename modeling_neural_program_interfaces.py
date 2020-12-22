@@ -1,3 +1,18 @@
+#           Some objects defined here               #
+#          and needed in other scripts              #
+#                                                   #
+#          Fulda, Brown, Wingate, Robinson          #
+#                       DRAGN                       #
+#                    NPI Project                    #
+#                       2020                        #
+
+#                    !!!NOTE!!!                     #
+# This script not as well-polished as others.
+# A lot here is extraneous.
+# Don't read through this script to understand our modeling.
+# (Refer to the others in this repo
+# ~ Dec 2020
+
 """
 Neural Program Interfaces
 

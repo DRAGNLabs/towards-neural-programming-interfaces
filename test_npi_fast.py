@@ -1,13 +1,16 @@
 #        This script requires tailoring        #
 #                to be used                    #
+#                                              #
+#      It is not as polished as the other      #
+#             scripts in the repo              #
 
 import pickle as pkl
 
 import torch
 from torch.nn import functional as F
 # from train_cat_gan_for_INDIVIDUAL_GS_MAY26 import GPT2WithNPI, GPT2LMWithNPI
-from train_no_cat_gan import GPT2LMWithNPI
 from transformers import *
+from .train_npi import GPT2LMWithNPI
 from .utils import top_k_top_p_filtering
 
 

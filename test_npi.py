@@ -7,12 +7,13 @@
 #                        2020                         #
 
 import pickle as pkl
+import os
 
 import torch
 from torch.nn import functional as F
 from transformers import *
 
-from .train_npi import GPT2LMWithNPI
+from .train_npi import NPINetwork, GenerationClassifier, GPT2WithNPI, GPT2LMWithNPI
 from .utils import top_k_top_p_filtering
 
 # big_text_file = "smaller_wiki_books_reddit_shuffled.txt"
@@ -40,7 +41,7 @@ def filter_for_printing(sent):
 
 
 def generate_text(in_text, lm_model, tokenizer, target_label=[1],
-                  num_generation_iters=100, max_seq_len=15, num_samples=1,
+                  num_generation_iters=100, max_seq_len=10, num_samples=1,
                   temperature=1, top_k=1, top_p=0.0):
     print("Generating text ordinarily", flush=True)
 
@@ -99,7 +100,7 @@ def generate_text(in_text, lm_model, tokenizer, target_label=[1],
 
 
 def generate_text_with_NPI(in_text, lm_model, vanilla_lm_model, tokenizer, perturbation_indices, npi_model,
-                           target_label=[1], num_generation_iters=100, num_seq_iters=15, max_seq_len=15, num_samples=1,
+                           target_label=[1], num_generation_iters=100, num_seq_iters=10, max_seq_len=10, num_samples=1,
                            temperature=1, top_k=1, top_p=0.0):
     print("Generating text with NPI perturbations", flush=True)
 
@@ -202,11 +203,11 @@ if __name__ == "__main__":
     # EDIT this next section for desired model paths (to test)
 
     NPIs_to_test = [  # VAR
-        "npi_models/params_discco2.0_styco10.0_simco0.0_layers_2_9/adversarial_npi_network_epoch20.bin",
-        "npi_models/params_discco2.0_styco10.0_simco0.0_layers_2_9/adversarial_npi_network_epoch30.bin",
-        "npi_models/params_discco2.0_styco10.0_simco0.0_layers_2_9/adversarial_npi_network_epoch40.bin",
-        "npi_models/params_discco2.0_styco10.0_simco0.0_layers_2_9/adversarial_npi_network_epoch50.bin",
-        "npi_models/params_discco2.0_styco10.0_simco0.0_layers_2_9/adversarial_npi_vfinal.bin",
+        "npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_network_epoch20.bin",
+        "npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_network_epoch30.bin",
+        "npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_network_epoch40.bin",
+        "npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_network_epoch50.bin",
+        "npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_vfinal.bin",
     ]
 
     pis_list = [
@@ -214,6 +215,9 @@ if __name__ == "__main__":
                ] * len(NPIs_to_test)
 
     OUTPUT_DIR = 'sexism_test_data'  # VAR
+
+    if not os.path.exists(OUTPUT_DIR):  # create dir
+        os.mkdir(OUTPUT_DIR)
 
     for ind, (path_to_npi, perturbation_indices) in enumerate(zip(NPIs_to_test, pis_list)):
 
@@ -237,9 +241,9 @@ if __name__ == "__main__":
 
         npi_model = torch.load(path_to_npi, map_location=torch.device('cpu'))
 
-        vanilla_lm_model = GPT2LMHeadModel.from_pretrained("gpt2-medium")
-        npi_lm_model = GPT2LMWithNPI.from_pretrained("gpt2-medium")
-        tokenizer = GPT2Tokenizer.from_pretrained("gpt2-medium")
+        vanilla_lm_model = GPT2LMHeadModel.from_pretrained("gpt2")
+        npi_lm_model = GPT2LMWithNPI.from_pretrained("gpt2")
+        tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
         # Make sure everything is on the same GPU
         npi_model = npi_model.cuda()
