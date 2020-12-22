@@ -25,16 +25,22 @@ Overview:
 import argparse
 import gc
 import time
+import pickle as pkl
+import os
 
 import numpy as np
+import torch
 import torch.nn as nn
+import torch.nn.functional as F
+from torch.nn import CrossEntropyLoss
 import torch.optim as optim
-from matplotlib import pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
+from matplotlib import pyplot as plt
 
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 from .modeling_neural_program_interfaces import *
-from .train_classifier import extract_needed_layers
+from .train_classifier import Classifier, extract_needed_layers
 from .utils import top_k_top_p_filtering
 
 torch.manual_seed(1)

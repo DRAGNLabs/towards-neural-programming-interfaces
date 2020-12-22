@@ -15,7 +15,7 @@ import pickle as pkl
 import numpy as np
 import torch
 
-from .train_classifier import extract_needed_layers
+from .train_classifier import Classifier, extract_needed_layers
 
 if __name__ == "__main__":
 

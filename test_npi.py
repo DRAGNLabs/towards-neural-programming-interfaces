@@ -13,7 +13,7 @@ import torch
 from torch.nn import functional as F
 from transformers import *
 
-from .train_npi import GPT2LMWithNPI
+from .train_npi import NPINetwork, GenerationClassifier, GPT2WithNPI, GPT2LMWithNPI
 from .utils import top_k_top_p_filtering
 
 # big_text_file = "smaller_wiki_books_reddit_shuffled.txt"
