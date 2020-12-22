@@ -1,6 +1,6 @@
 # Towards Neural Programming Interfaces
 
-This repository is the official implementation of "Towards Neural Programming Interfaces" (to be published and presented in NeurIPS 2020 proceedings). 
+This repository is the official implementation of "Towards Neural Programming Interfaces" (to be published and presented in NeurIPS 2020 proceedings). See https://arxiv.org/abs/2012.05983 for preprint.
 
 ## Dependencies
 
