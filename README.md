@@ -16,7 +16,7 @@ This bash script uses pip to install needed packages.
 To generate a dataset, run this command:
 
 ```data
-python construct_data.py --target-words <target words>
+python construct_data.py
 ```
 You may choose not to specify the target word option, in which case the default will be a set of sexist terms
 

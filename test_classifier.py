@@ -100,3 +100,4 @@ if __name__ == "__main__":
         print('done')
         print("TOTAL ACCURACY OVERALL:", avg_acc)
         # print("TOTAL ALT-ACCURACY OVERALL:",avg_alt_acc)
+        print("\n================================================\n", flush=True)
