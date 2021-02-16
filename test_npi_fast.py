@@ -11,7 +11,7 @@ from torch.nn import functional as F
 # from train_cat_gan_for_INDIVIDUAL_GS_MAY26 import GPT2WithNPI, GPT2LMWithNPI
 from transformers import *
 from .train_npi import GPT2LMWithNPI
-from .utils import top_k_top_p_filtering
+from utils import top_k_top_p_filtering
 
 
 # import copy_of_train_npi_forn8_MAY15 as npi
