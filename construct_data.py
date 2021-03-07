@@ -18,7 +18,7 @@ import torch
 import torch.nn.functional as F
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
-from .utils import top_k_top_p_filtering
+from utils import top_k_top_p_filtering
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -69,8 +69,8 @@ if __name__ == "__main__":
                         help="base name of pickle files to write data set to"
                         )
     parser.add_argument("--target-words",
-                        default="sexist slurs",
-                        help="words to target, separated by commas; e.g. 'cat,dog,mouse'\n'sexist slurs' is a special value for this argument"
+                        default="sexist_slurs",
+                        help="words to target, separated by commas; e.g. 'cat,dog,mouse'\n'sexist_slurs' is a special value for this argument"
                         )
     parser.add_argument("--pretrained-model",
                         default="gpt2",
