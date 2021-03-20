@@ -14,7 +14,7 @@ from torch.nn import functional as F
 from transformers import *
 
 from .train_npi import NPINetwork, GenerationClassifier, GPT2WithNPI, GPT2LMWithNPI
-from .utils import top_k_top_p_filtering
+from utils import top_k_top_p_filtering
 
 # big_text_file = "smaller_wiki_books_reddit_shuffled.txt"
 off_txt_pkl = "data/sexist_sents_1000.pkl"  # VAR
@@ -253,10 +253,10 @@ if __name__ == "__main__":
         # Text prompts for language generation we pull from a corpus
         in_texts_list = []
 
-        # In the default setting, the task is avoidance of sexist terms, so we 
+        # In the default setting, the task is avoidance of sexist terms, so we
         # use a special corpus of sentences that cause a high frequency of sexist
         # terms with vanilla settings to show NPI ability to counteract.
-        # In word induction tasks, simply use a generic corpus. 
+        # In word induction tasks, simply use a generic corpus.
         # Default corpus: data/sexist_sents_1000.pkl (Look near line 16)
         with open(off_txt_pkl, 'rb') as f:
             total_sents = pkl.load(f)
@@ -327,7 +327,7 @@ if __name__ == "__main__":
                 perturbed_instances += 1
                 perturbed_instance = 1
 
-            # determine switched-to and switched-from 
+            # determine switched-to and switched-from
             if not vanilla_instance and perturbed_instance:
                 switched_to_target += 1
             if vanilla_instance and not perturbed_instance:

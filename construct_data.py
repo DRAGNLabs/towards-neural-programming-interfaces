@@ -18,7 +18,7 @@ import torch
 import torch.nn.functional as F
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
-from .utils import top_k_top_p_filtering
+from utils import top_k_top_p_filtering
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -33,7 +33,7 @@ For many many sentences:
         Take selected indices of hidden states and concatenate them to BIG_ARRAY
         Get next predicted token from GPT2 and append to sentence
         Make sentence length seq_lenth again by removing first token
-Then BIG_ARRAY is size (1,num_iters*seq_length*len(selected_indices),num_possible_labels) 
+Then BIG_ARRAY is size (1,num_iters*seq_length*len(selected_indices),num_possible_labels)
     but we may want to reshape it to be ((1,num_iters*seq_length*len(selected_indices), num_possible_labels, 1)
 
 """
@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     Params:
         num_sentences (int): max number of sentences to get data for
-        sent_len (int): sentence length 
+        sent_len (int): sentence length
         num_iters (int): number of words to add onto the sentence cyclically
         pkl_name (str): name for pkl to which we save big_arrays
     Returns:
@@ -207,7 +207,7 @@ if __name__ == "__main__":
             word_counts[word] = 0
         word_counts['UNK'] = 0
 
-        # And a few other things we need defined outside the loop 
+        # And a few other things we need defined outside the loop
         pkl_counter = 0
         iterator = -1
 
@@ -217,7 +217,7 @@ if __name__ == "__main__":
 
             for line in BIG_FILE:
 
-                # clean line to some extent 
+                # clean line to some extent
                 #   (due to possible differences in corpora that could tip off the classifer)
                 line = line.lower().strip().strip('.').strip()
                 if len(line.split()) > 100 or len(line.split()) < 4:
