@@ -69,8 +69,8 @@ if __name__ == "__main__":
                         help="base name of pickle files to write data set to"
                         )
     parser.add_argument("--target-words",
-                        default="sexist slurs",
-                        help="words to target, separated by commas; e.g. 'cat,dog,mouse'\n'sexist slurs' is a special value for this argument"
+                        default="sexist_slurs",
+                        help="words to target, separated by commas; e.g. 'cat,dog,mouse'\n'sexist_slurs' is a special value for this argument"
                         )
     parser.add_argument("--pretrained-model",
                         default="gpt2",
