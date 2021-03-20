@@ -355,15 +355,15 @@ if __name__ == "__main__":
                         # then check if we should append or not
                         if word_counts[word] > num_sentences:
                             append_to_dataset = False
-                if True not in list(found_words_dict.values()):  # means this is a term-negative labeled data point!
-                    # Label: [0, 1]
-                    orig_classification[i_word + 1] = 1.
-                    word_counts['UNK'] = word_counts['UNK'] + 1
-                    if word_counts['UNK'] > 1.2 * max(
-                            [word_counts[word] for word in TARG]) + 1:  # keep the UNKs down!!! We want balance!!!
-                        append_to_dataset = False
-                        word_counts['UNK'] = word_counts[
-                                                 'UNK'] - 1  # so we actually won't count this one since we're not appending
+                    if True not in list(found_words_dict.values()):  # means this is a term-negative labeled data point!
+                        # Label: [0, 1]
+                        orig_classification[i_word + 1] = 1.
+                        word_counts['UNK'] = word_counts['UNK'] + 1
+                        if word_counts['UNK'] > 1.2 * max(
+                                [word_counts[word] for word in TARG]) + 1:  # keep the UNKs down!!! We want balance!!!
+                            append_to_dataset = False
+                            word_counts['UNK'] = word_counts[
+                                                     'UNK'] - 1  # so we actually won't count this one since we're not appending
 
                 # What will we call "original text" and "generated text"
 
