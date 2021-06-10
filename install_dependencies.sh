@@ -1,6 +1,6 @@
 echo "installing packages"
 pip install -r requirements.txt
-#pip3 -r requirements.txt
+#pip3 install -r requirements.txt
 echo "unzip transformers directory and corpus"
 unzip transformers.zip
 unzip small_corpus.zip
