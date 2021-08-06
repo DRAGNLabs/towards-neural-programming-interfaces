@@ -29,7 +29,7 @@ import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 
-from .modeling_neural_program_interfaces import *  # from transformers import *
+from modeling_neural_program_interfaces import *  # from transformers import *
 
 torch.manual_seed(1)
 
