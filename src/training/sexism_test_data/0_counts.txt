@@ -1,0 +1,1 @@
+/home/cs401r/towards-neural-programming-interfaces/models/npi_models/politics/liberal/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_network_epoch50.bin

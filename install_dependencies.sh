@@ -1,12 +1,11 @@
 echo "installing packages"
-pip install -r requirements.txt
-#pip3 install -r requirements.txt
+pip3 install -r requirements.txt
+python3 -m spacy download en_core_web_sm
 echo "unzip transformers directory and corpus"
-unzip transformers.zip
-unzip small_corpus.zip
+unzip -f transformers.zip
+unzip -f data/raw/small_corpus.zip
 mv transformers/run_generation.py .
 echo "make necessary directories"
-#mkdir data
-mkdir classifiers
-mkdir npi_models
+mkdir models/classifiers
+mkdir models/npi_models
 echo "done"

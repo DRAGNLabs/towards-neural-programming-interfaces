@@ -10,7 +10,7 @@ import torch
 from torch.nn import functional as F
 # from train_cat_gan_for_INDIVIDUAL_GS_MAY26 import GPT2WithNPI, GPT2LMWithNPI
 from transformers import *
-from .train_npi import GPT2LMWithNPI
+from train_npi import GPT2LMWithNPI
 from utils import top_k_top_p_filtering
 
 
@@ -210,10 +210,10 @@ def generate_text_with_NPI(in_text, lm_model, vanilla_lm_model, tokenizer, pertu
 
 if __name__ == "__main__":
 
-    target_word = "word"
+    target_word = "cat"
 
     NPIs_to_test = [
-        "/npi_network.bin",
+        "/pretrained_models/cat_avoidance_npi_model.bin",
     ]
 
     # NPIs_to_test = NPIs_to_test[:2]

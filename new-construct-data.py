@@ -22,6 +22,9 @@ from utils import top_k_top_p_filtering
 
 nlp = spacy.load("en_core_web_sm")
 
+# USER ADDITION
+import pandas as pd
+
 """
 The output of the GPT-2 model is a tuple of length 3
 Last element of tuple is all_hidden_states, a list of length 25 for medium GPT-2 (13 for small)
@@ -60,7 +63,7 @@ if __name__ == "__main__":
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--mixed-sentence-file",
-                        default="./smaller_wiki_books_reddit_shuffled.txt",
+                        default="trainingandtest/training.1600000.processed.noemoticon.csv",
                         help="corpus from which to pull sentences; may be mixed with sentences that display target behavior to increase likelihood of production from GPT-2 and possibly expedite data set production"
 
                         )
@@ -70,7 +73,7 @@ if __name__ == "__main__":
                         )
     parser.add_argument("--target-words",
                         default="sexist_slurs",
-                        help="words to target, separated by commas; e.g. 'cat,dog,mouse'\n'sexist_slurs' is a special value for this argument"
+                        help="words to target, separated by commas; e.g. 'cat,dog,mouse'\n'sexist_slurs', 'positive_terms', and 'negative_terms' are special values for this argument"
                         )
     parser.add_argument("--pretrained-model",
                         default="gpt2",
@@ -101,6 +104,15 @@ if __name__ == "__main__":
     if args.target_words == 'sexist_slurs':
         with open("data/sexist_terms.txt", 'r') as f:
             args.target_words = f.read().strip()
+
+	# also support positive or negative terms
+    #if args.target_words == 'positive_terms':
+    #    with open("data/positive_terms.txt", 'r') as f:
+    #        args.target_words = f.read().strip()
+    #if args.target_words == 'negative_terms':
+    #    with open("data/negative_terms.txt", 'r') as f:
+    #        args.target_words = f.read().strip()
+
     term_list = args.target_words.split(',')  # list of target words
     term_list = [term.lower().strip() for term in term_list]  # clean words
     while '' in term_list:  # we don't want any '' empty strings
@@ -116,8 +128,9 @@ if __name__ == "__main__":
 
     # num_checks will determine the maximum number of .pkl data files to be generated
     #   of course you can always kill the process once you feel you have enough data
-    num_chunks = 25 * len(pretrained_models) * len(PRED_INDICES)
-    num_chunks = 57  # NOTE: This just for the default sexist slur NPI training, for which only 57 pickles are needed. Suggested to comment out
+    #num_chunks = 25 * len(pretrained_models) * len(PRED_INDICES)
+    #num_chunks = 57  # NOTE: This just for the default sexist slur NPI training, for which only 57 pickles are needed. Suggested to comment out
+    num_chunks = 20
     # for other applications and just interrupt the process when you have a good amount of data
     # (depending on your machinery, time constraints)
     num_sentences_per_chunk = 4000 // len(PRED_INDICES)  # a pkl file should only be so big for loading speed
@@ -148,8 +161,8 @@ if __name__ == "__main__":
     GPT2_TEXT_INDEX = 8  # the text of what the lang model actually produced
 
     # params to inject the word randomly into inputs to encourage its output
-    INJECT_WORDNESS = True
-    INJECT_WORD_RAND_CHANGES = True  # this one should likely be True if the first one is
+    INJECT_WORDNESS = False
+    INJECT_WORD_RAND_CHANGES = False  # this one should likely be True if the first one is
 
     # Fix pkl_name:
     if ".pkl" not in pkl_name:
@@ -213,9 +226,14 @@ if __name__ == "__main__":
 
         """Now we begin the loop of a lifetime...---...---...---...---...---...---...---...---...---...---"""
 
-        with open(mixed_sentence_file, 'r') as BIG_FILE:
+        with open(mixed_sentence_file, 'r', newline='') as BIG_FILE:
+            data = pd.read_csv(BIG_FILE)
+            filereader = data.sample(frac=1)
 
-            for line in BIG_FILE:
+            for index, row in filereader.iterrows():
+                # get score and last string
+                score = int(row[0])
+                line = row[-1]
 
                 # clean line to some extent
                 #   (due to possible differences in corpora that could tip off the classifer)
@@ -346,24 +364,33 @@ if __name__ == "__main__":
                 orig_classification = np.zeros(len(TARG) + 1)
 
                 # count words and see if we should append to dataset
-                for i_word, word in enumerate(TARG):
-                    if found_words_dict[
-                        word]:  # means we found this word: so this is a term-postive labeled data point!
-                        # Label: [1, 0]
-                        orig_classification[i_word] = 1.
-                        word_counts[word] = word_counts[word] + 1
-                        # then check if we should append or not
-                        if word_counts[word] > num_sentences:
-                            append_to_dataset = False
-                if True not in list(found_words_dict.values()):  # means this is a term-negative labeled data point!
-                    # Label: [0, 1]
-                    orig_classification[i_word + 1] = 1.
-                    word_counts['UNK'] = word_counts['UNK'] + 1
-                    if word_counts['UNK'] > 1.2 * max(
-                            [word_counts[word] for word in TARG]) + 1:  # keep the UNKs down!!! We want balance!!!
-                        append_to_dataset = False
-                        word_counts['UNK'] = word_counts[
-                                                 'UNK'] - 1  # so we actually won't count this one since we're not appending
+                #for i_word, word in enumerate(TARG):
+                #    if found_words_dict[
+                #        word]:  # means we found this word: so this is a term-postive labeled data point!
+                #        # Label: [1, 0]
+                #        orig_classification[i_word] = 1.
+                #        word_counts[word] = word_counts[word] + 1
+                #        # then check if we should append or not
+                #        if word_counts[word] > num_sentences:
+                #            append_to_dataset = False
+                #if True not in list(found_words_dict.values()):  # means this is a term-negative labeled data point!
+                #    # Label: [0, 1]
+                #    orig_classification[i_word + 1] = 1.
+                #    word_counts['UNK'] = word_counts['UNK'] + 1
+                #    if word_counts['UNK'] > 1.2 * max(
+                #            [word_counts[word] for word in TARG]) + 1:  # keep the UNKs down!!! We want balance!!!
+                #        append_to_dataset = False
+                #        word_counts['UNK'] = word_counts[
+                #                                 'UNK'] - 1  # so we actually won't count this one since we're not appending
+
+                # refer to .csv for classification
+                append_to_dataset = True
+                # 0 || 1 means negative classification, 3 || 4 means positive classification
+                if score==0 or score==1:
+                #if score==3 or score==4:
+                    orig_classification[0] = 1
+                else:
+                    orig_classification[1] = 1
 
                 # What will we call "original text" and "generated text"
 

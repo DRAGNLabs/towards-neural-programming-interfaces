@@ -6,39 +6,67 @@
 #                     NPI Project                     #
 #                        2020                         #
 
+import argparse
 import pickle as pkl
 import os
 
 import torch
 from torch.nn import functional as F
-from transformers import *
-
-from .train_npi import NPINetwork, GenerationClassifier, GPT2WithNPI, GPT2LMWithNPI
-from utils import top_k_top_p_filtering
+from typing import List
+from src.models.npi import GPT2LMHeadModel, GPT2LMWithNPI
+from transformers.tokenization_gpt2 import GPT2Tokenizer
+from src import utils
 
 # big_text_file = "smaller_wiki_books_reddit_shuffled.txt"
-off_txt_pkl = "data/sexist_sents_1000.pkl"  # VAR
-
-offensive_words_document = "data/sexist_terms.txt"  # VAR
+offensive_words_document = "../../data/raw/sexist_terms.txt"  # VAR
 with open(offensive_words_document, 'r') as f:
     OFFENSIVE_WORDS = f.readlines()
 OFFENSIVE_WORDS = [word.strip('\n') for word in OFFENSIVE_WORDS]
 
 
-def count_offensive(sent):
-    sent = sent.lower()
-    offense_count = 0
-    for word in OFFENSIVE_WORDS:
-        if word.lower() in sent:
-            offense_count += sent.count(word)
-    return offense_count
+def count_target(sent: str, targets: List[str]=OFFENSIVE_WORDS):
+    sent = sent.lower().replace(".", " ").replace("!", " ").replace("?", " ")
+    target_count = 0
 
+    for word in targets:
+        target_count += sent.count(word)
+    return target_count
 
+# TODO: Unused
 def filter_for_printing(sent):
     for word in OFFENSIVE_WORDS:
         sent = sent.replace(word, word[0] + "*" * (len(word) - 2) + word[-1])
     return sent
 
+def load_input_file(file: str, max_lines: int, test_avoidance: bool, targets: str) -> List[str]:
+    in_texts_list = []
+    # In the default setting, the task is avoidance of sexist terms, so we
+    # use a special corpus of sentences that cause a high frequency of sexist
+    # terms with vanilla settings to show NPI ability to counteract.
+    # In word induction tasks, simply use a generic corpus.
+    print("Loading input file")
+    if ".pkl" in file:
+        with open(file, 'rb') as f:
+            total_sents = pkl.load(f)
+            iterator = 0
+            for line in total_sents:
+                if len(line) < 3 or len(line) > 1000:
+                    continue
+                in_texts_list.append(line)
+                iterator += 1
+                if iterator > max_lines:  # VAR
+                    break
+            del total_sents
+    else:
+        with open(file) as f:
+            line = f.readline(1000)
+            while line and len(in_texts_list) < max_lines:
+                # Don't append if line is too short or (if test_avoidance is enabled and line is not in target).
+                if len(line) >= 3 and ((not test_avoidance) or count_target(line, targets) > 0):
+                    in_texts_list.append(line[:-1]) # Append line without \n 
+                line = f.readline(1000)
+    print(F"Lines added: {len(in_texts_list)}")
+    return in_texts_list
 
 def generate_text(in_text, lm_model, tokenizer, target_label=[1],
                   num_generation_iters=100, max_seq_len=10, num_samples=1,
@@ -65,7 +93,7 @@ def generate_text(in_text, lm_model, tokenizer, target_label=[1],
 
         # Now we add the new token to the list of tokens
         next_token_logits = hidden_states[0, -1, :]  # This is a very long vector (vocab size)
-        filtered_logits = top_k_top_p_filtering(next_token_logits, top_k=top_k, top_p=top_p)
+        filtered_logits = utils.top_k_top_p_filtering(next_token_logits, top_k=top_k, top_p=top_p)
         next_token = torch.multinomial(F.softmax(filtered_logits, dim=-1), num_samples=num_samples)
         next_token_list = next_token.tolist()
         out_tokens = out_tokens + next_token_list
@@ -83,7 +111,7 @@ def generate_text(in_text, lm_model, tokenizer, target_label=[1],
 
         # Now we add the new token to the list of tokens
         next_token_logits = hidden_states[0, -1, :]  # This is a very long vector
-        filtered_logits = rg.top_k_top_p_filtering(next_token_logits, top_k=top_k, top_p=top_p)
+        filtered_logits = utils.top_k_top_p_filtering(next_token_logits, top_k=top_k, top_p=top_p)
         next_token = torch.multinomial(F.softmax(filtered_logits, dim=-1), num_samples=num_samples)
         next_token_list = next_token.tolist()
         out_tokens = out_tokens + next_token_list
@@ -127,7 +155,7 @@ def generate_text_with_NPI(in_text, lm_model, vanilla_lm_model, tokenizer, pertu
 
         # Now we add the new token to the list of tokens
         next_token_logits = hidden_states[0, -1, :] / temperature  # This is a very long vector
-        filtered_logits = top_k_top_p_filtering(next_token_logits, top_k=top_k, top_p=top_p)
+        filtered_logits = utils.top_k_top_p_filtering(next_token_logits, top_k=top_k, top_p=top_p)
         next_token = torch.multinomial(F.softmax(filtered_logits, dim=-1), num_samples=num_samples)
         next_token_list = next_token.tolist()
         out_tokens = out_tokens + next_token_list
@@ -154,7 +182,7 @@ def generate_text_with_NPI(in_text, lm_model, vanilla_lm_model, tokenizer, pertu
                 big_array.append(all_hiddens[pi])
 
             next_token_logits = hidden_states[0, -1, :] / temperature
-            filtered_logits = rg.top_k_top_p_filtering(next_token_logits, top_k=top_k, top_p=top_p)
+            filtered_logits = utils.top_k_top_p_filtering(next_token_logits, top_k=top_k, top_p=top_p)
             next_token = torch.multinomial(F.softmax(filtered_logits, dim=-1), num_samples=num_samples)
 
             tokens = torch.cat((tokens, next_token.unsqueeze(0)), dim=1).cuda()
@@ -175,7 +203,7 @@ def generate_text_with_NPI(in_text, lm_model, vanilla_lm_model, tokenizer, pertu
 
             # Now we extract the new token and add it to the list of tokens
             next_token_logits = hidden_states[0, -1, :] / temperature
-            filtered_logits = rg.top_k_top_p_filtering(next_token_logits, top_k=top_k, top_p=top_p)
+            filtered_logits = utils.top_k_top_p_filtering(next_token_logits, top_k=top_k, top_p=top_p)
             next_token = torch.multinomial(F.softmax(filtered_logits, dim=-1), num_samples=num_samples)
             next_token_list = next_token.tolist()
             out_tokens = out_tokens + next_token_list  # append to product here
@@ -195,32 +223,36 @@ def generate_text_with_NPI(in_text, lm_model, vanilla_lm_model, tokenizer, pertu
     return tokenizer.decode(out_tokens)
 
 
-if __name__ == "__main__":
+def test_npi(args):
+    # Adds spaces in front of targets. Default is the list of offensive words.
+    targets = [" " + target + " " for target in args.target_words] if args.target_words[0] != "SEXIST-TERMS" else None  # default
 
-    # target_word = "cat" # this line for individual word NPI testing
-    target_word = "SEXIST-TERMS"  # default
-
-    # EDIT this next section for desired model paths (to test)
-
-    NPIs_to_test = [  # VAR
-        "npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_network_epoch20.bin",
-        "npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_network_epoch30.bin",
-        "npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_network_epoch40.bin",
-        "npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_network_epoch50.bin",
-        "npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_vfinal.bin",
-    ]
+    NPIs_to_test: List[str] = args.models_list
 
     pis_list = [
                    [5, 11],  # VAR
                ] * len(NPIs_to_test)
 
-    OUTPUT_DIR = 'sexism_test_data'  # VAR
+    input_text_file: str = args.input_text_file  # VAR
+    max_lines: int = args.input_text_lines  # VAR
+    test_avoidance: bool = args.test_avoidance  # VAR
+    input_text: str = args.input_text   # VAR
+
+    OUTPUT_DIR = args.output_dir  # VAR
+
+    print(F"Configuration\n  Models to test: {NPIs_to_test}\n  Target Word: {targets}\n  \
+            Input Text File: {input_text_file}\n  Max lines to test: {max_lines}\n  Focus on test avoidance: {test_avoidance}\n  \
+            Input Text: {input_text}\n  Output directory: {OUTPUT_DIR}")
 
     if not os.path.exists(OUTPUT_DIR):  # create dir
         os.mkdir(OUTPUT_DIR)
 
-    for ind, (path_to_npi, perturbation_indices) in enumerate(zip(NPIs_to_test, pis_list)):
+    # Text prompts for language generation we pull from a corpus
+    in_texts_list = [input_text] if input_text \
+            else load_input_file(input_text_file, max_lines, test_avoidance, targets or OFFENSIVE_WORDS)
+        
 
+    for ind, (path_to_npi, perturbation_indices) in enumerate(zip(NPIs_to_test, pis_list)):
         print("")
         print("##########################################################")
         print("#### About to start testing for {} with perterub indices {}, test number {} #####".format(path_to_npi,
@@ -250,26 +282,6 @@ if __name__ == "__main__":
         vanilla_lm_model = vanilla_lm_model.cuda()
         npi_lm_model = npi_lm_model.cuda()
 
-        # Text prompts for language generation we pull from a corpus
-        in_texts_list = []
-
-        # In the default setting, the task is avoidance of sexist terms, so we
-        # use a special corpus of sentences that cause a high frequency of sexist
-        # terms with vanilla settings to show NPI ability to counteract.
-        # In word induction tasks, simply use a generic corpus.
-        # Default corpus: data/sexist_sents_1000.pkl (Look near line 16)
-        with open(off_txt_pkl, 'rb') as f:
-            total_sents = pkl.load(f)
-            iterator = 0
-            for line in total_sents:
-                if len(line) < 3 or len(line) > 1000:
-                    continue
-                in_texts_list.append(line)
-                iterator += 1
-                if iterator > 1000:  # VAR
-                    break
-            del total_sents
-
         total_examples_evaluated = 0
 
         total_input_count = 0  # count of outputs that contain target word
@@ -286,8 +298,7 @@ if __name__ == "__main__":
         num_vanilla_degenerate = 0
         num_perturbed_degenerate = 0
 
-        for in_text in in_texts_list[:1000]:  # VAR
-
+        for in_text in in_texts_list: 
             vanilla_text = generate_text(in_text, vanilla_lm_model, tokenizer)
             perturbed_text = generate_text_with_NPI(in_text, npi_lm_model, vanilla_lm_model, tokenizer,
                                                     perturbation_indices, npi_model)
@@ -310,11 +321,9 @@ if __name__ == "__main__":
             print("")
 
             # count instances of target and target-plural in outpus
-            total_input_count += count_offensive(in_text.lower().replace(".", " ").replace("!", " ").replace("?", " "))
-            total_vanilla_count += count_offensive(
-                vanilla_text.lower().replace(".", " ").replace("!", " ").replace("?", " "))
-            total_perturbed_count += count_offensive(
-                perturbed_text.lower().replace(".", " ").replace("!", " ").replace("?", " "))
+            total_input_count += count_target(in_text)
+            total_vanilla_count += count_target(vanilla_text)
+            total_perturbed_count += count_target(perturbed_text)
 
             # check for existence of target in input and output
             if total_input_count:
@@ -378,9 +387,42 @@ if __name__ == "__main__":
         print("total_perturbed_count", total_perturbed_count)
         print("")
 
-        print("target {} present in GPT-2 input: {}".format(target_word, input_instances))
-        print("target {} present in untouched GPT-2 output: {}".format(target_word, vanilla_instances))
-        print("target {} present in perturbed GPT-2 output: {}".format(target_word, perturbed_instances))
+        print("target {} present in GPT-2 input: {}".format(targets or "SEXIST-TERMS", input_instances))
+        print("target {} present in untouched GPT-2 output: {}".format(targets or "SEXIST-TERMS", vanilla_instances))
+        print("target {} present in perturbed GPT-2 output: {}".format(targets or "SEXIST-TERMS", perturbed_instances))
         print("")
         print("switched_to_target", switched_to_target)
         print("switched_from_target", switched_from_target)
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-m', '--models-list', nargs='+', default=[
+        "npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_network_epoch20.bin",
+        "npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_network_epoch30.bin",
+        "npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_network_epoch40.bin",
+        "npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_network_epoch50.bin",
+        "npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_vfinal.bin",
+    ])
+    parser.add_argument("-t", "--target-words", nargs='+', 
+                        default="SEXIST-TERMS",
+                        help="words to target\n'SEXIST-TERMS' is a special value for this argument"
+                        )
+    parser.add_argument("-f", "--input-text-file",
+                        default="data/sexist_sents_1000.pkl",
+                        help="The input text. Can also be pickled")
+    parser.add_argument("-l", "--input-text-lines",
+                        default=1000,
+                        help="Max amount of lines to be taken from the given input text file")
+    parser.add_argument('-a', dest='test_avoidance', action='store_true')
+    parser.set_defaults(test_avoidance=False)
+    parser.add_argument("-i", "--input-text",
+                        default=None,
+                        help="This argument will override the --input-text-file argument. Will test the interested models on the input text")
+    parser.add_argument("-o", "--output-dir",
+                        default="sexism_test_data",
+                        help="Output directory of test results")
+
+    args = parser.parse_args()
+    
+    test_npi(args)

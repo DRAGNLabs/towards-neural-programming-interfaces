@@ -1,4 +1,21 @@
+# local package
+-e .
+
 numpy
 torch==1.5.1
 torchvision==0.6.1
 scipy
+
+# Dependencies to run test_npi.py
+six
+boto3
+requests
+tqdm
+regex
+sacremoses
+matplotlib
+scikit-learn # For data.metrics
+
+# Dependencies to run construct_data.py
+spacy # Don't forget to download the en_core_web_sm models
+

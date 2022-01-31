@@ -15,38 +15,17 @@ import pickle as pkl
 import numpy as np
 import torch
 
-from .train_classifier import Classifier, extract_needed_layers
+from src.dataset.npi_dataset import extract_needed_layers
+from src.models.classifiers import Classifier
 
-if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model-dir-path",
-                        default="classifiers/layers_5_11/",
-                        help="path to directory containing classifiers")
-    parser.add_argument("--data-path",
-                        default="data/sentence_arrays",
-                        help="path to data (standard file name witout pkl suffix, full or relative file path)")
-    parser.add_argument("--test-pkls",
-                        type=str,
-                        default="53,54,55,56",  # See NOTE in arg-parsing section of train_classifier.py (line 378)
-                        help="pkl numbers for data designated for testing: string of numbers separated by commas")
-    parser.add_argument("--test-epochs",
-                        type=str,
-                        default="20,30,40,50,60,70",
-                        help="epoch nums for class'n models we want to test: string of numbers separated by commas")
-    parser.add_argument("--perturbation-indices",
-                        type=str,
-                        default="5,11",
-                        help="indices for layers to extract from language model activations: string of numbers separated by commas")
-
-    args = parser.parse_args()
-
+def test_classifier(args):
     EPOCH_NUM_LIST = [int(pi) for pi in args.test_epochs.split(',')]
     FILE_PATH_LIST = [args.model_dir_path] * len(EPOCH_NUM_LIST)
 
     for classifier_num in range(len(EPOCH_NUM_LIST)):
         epoch_num = EPOCH_NUM_LIST[classifier_num]
-        test_nums = [int(pi) for pi in args.test_pkls.split(',')]  # these pickles are designated for testing!!
+        # these pickles are designated for testing!!
+        test_nums = [int(pi) for pi in args.test_pkls.split(',')]
         file_path = FILE_PATH_LIST[classifier_num]
         data_path = args.data_path
 
@@ -54,9 +33,15 @@ if __name__ == "__main__":
         print("NEW FILE", file_path, "epoch num", epoch_num, flush=True)
 
         # Load classifier
-        classifier = torch.load(file_path + "Classifier_classification_network_epoch{}.bin".format(epoch_num),
-                                map_location=torch.device('cpu')).cuda()
+        print("Creating Classifier Model", flush=True)
+        # TODO when modifiying PRED_IND, this may need to change
+        classifier_model = Classifier().float()
+
         #   We load the model from the CPU just in case it was trained on a different GPU than the one we are using
+        classifier_model.load_state_dict(torch.load(F"{file_path}Classifier_classification_network_epoch{epoch_num}.bin",
+                                                    map_location=torch.device('cpu')))
+        classifier_model.cuda()
+        classifier_model.eval()
 
         collected_accs = []
         # collected_alt_accs = []
@@ -68,11 +53,12 @@ if __name__ == "__main__":
             score = 0
             # alt_score = 0
             for i in range(len(money)):
+                # TODO Figure out how to generalize and fix extract_needed_layers
                 arr = extract_needed_layers(money[i][0], PRED_INDS)
                 arr = torch.Tensor(arr).cuda()
                 sent = money[i][-1]
                 truth = money[i][1][1]
-                yhat = classifier(arr).squeeze().cpu().item()
+                yhat = classifier_model(arr).squeeze().cpu().item()
                 if truth == 1 and yhat >= .5:
                     score += 1
                 elif truth == 0 and yhat < .5:
@@ -101,3 +87,30 @@ if __name__ == "__main__":
         print("TOTAL ACCURACY OVERALL:", avg_acc)
         # print("TOTAL ALT-ACCURACY OVERALL:",avg_alt_acc)
         print("\n================================================\n", flush=True)
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model-dir-path",
+                        default="classifiers/layers_5_11/",
+                        help="path to directory containing classifiers")
+    parser.add_argument("--data-path",
+                        default="data/sentence_arrays",
+                        help="path to data (standard file name witout pkl suffix, full or relative file path)")
+    parser.add_argument("--test-pkls",
+                        type=str,
+                        # See NOTE in arg-parsing section of train_classifier.py (line 378)
+                        default="53,54,55,56",
+                        help="pkl numbers for data designated for testing: string of numbers separated by commas")
+    parser.add_argument("--test-epochs",
+                        type=str,
+                        default="20,30,40,50,55,60,65,70",
+                        help="epoch nums for class'n models we want to test: string of numbers separated by commas")
+    parser.add_argument("--perturbation-indices",
+                        type=str,
+                        default="5,11",
+                        help="indices for layers to extract from language model activations: string of numbers separated by commas")
+
+    args = parser.parse_args()
+
+    test_classifier(args)
