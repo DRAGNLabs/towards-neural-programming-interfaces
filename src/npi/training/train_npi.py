@@ -34,9 +34,9 @@ import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
 from matplotlib import pyplot as plt
-from src.dataset.npi_dataset import NPIDataLoader, NPIDataSet
-from src.models.classifiers import Classifier, GenerationClassifier
-from src.models.npi import GPT2LMWithNPI, NPINetwork
+from npi.dataset.npi_dataset import NPIDataLoader, NPIDataSet
+from npi.models.classifiers import Classifier, GenerationClassifier
+from npi.models.npi import GPT2LMWithNPI, NPINetwork
 
 from transformers import GPT2Tokenizer
 
@@ -140,9 +140,10 @@ def load_models(args, input_activs_shape, input_targ_shape):
     npi_model = None
     if npi_type == "adversarial":
         npi_model = NPINetwork(input_activs_shape, input_targ_shape).float()
-    elif args.npi_model_path is not None:
+    else:
         raise NotImplementedError("NPI should be trained adversarially")
-        npi_model = torch.load(args.npi_model_path)
+    if args.npi_model_path is not None:
+        npi_model.load_state_dict(torch.load(args.npi_model_path, map_location="cpu"))
         npi_model.eval()
     else:
         raise NotImplementedError("Requested model {} has not been implemented.".format(npi_type))
@@ -173,6 +174,11 @@ def load_models(args, input_activs_shape, input_targ_shape):
         generate_class_model.eval()
     else:
         raise NotImplementedError("Requested model {} has not been implemented.".format(generate_class_type))
+    
+    if args.generation_classifier_path is not None:
+        generate_class_model.load_state_dict(torch.load(args.generation_classifier_path, map_location="cpu"))
+        generate_class_model.eval()
+
     generate_class_model.cuda()
 
     return npi_model, content_class_model, generate_class_model
@@ -746,7 +752,7 @@ def train_adversarial_NPI(args):  # train NPI and Classifiers in-tandem
                 # save the current version of the npi_model
                 print("Saving NPI Model")
                 out_path = save_file_path + "{}_npi_network_epoch{}.bin".format(npi_type, epoch)
-                torch.save(npi_model, out_path)
+                torch.save(npi_model.state_dict(), out_path)
 
                 print("Saving NPI Loss Summary")
                 out_path = save_file_path + "{}_npi_loss_summaries_epoch{}.pkl".format(npi_type, epoch)
@@ -768,7 +774,7 @@ def train_adversarial_NPI(args):  # train NPI and Classifiers in-tandem
 
                 print("Saving GenerationClassifier Model")
                 out_path = save_file_path + "{}_network_epoch{}.bin".format('GenerationClassifier', epoch)
-                torch.save(generate_class_model, out_path)
+                torch.save(generate_class_model.state_dict(), out_path)
 
                 print("Saving GenerationClassifier Loss Summary")
                 out_path = None
@@ -1125,11 +1131,11 @@ if __name__ == "__main__":
                     args)
 
                 out_path = args.save_file_path + "{}_npi_vfinal.bin".format(args.npi_type)
-                torch.save(npi_model, out_path)
+                torch.save(npi_model.state_dict(), out_path)
                 out_path = args.save_file_path + "content_classifier_vfinal.bin"
-                torch.save(content_classifier_model, out_path)
+                torch.save(content_classifier_model.state_dict(), out_path)
                 out_path = args.save_file_path + "generation_classifier_vfinal.bin"
-                torch.save(generation_classifier_model, out_path)
+                torch.save(generation_classifier_model.state_dict(), out_path)
 
                 print("Avg epoch loss == ", avg_epoch_loss)
 

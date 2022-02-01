@@ -4,63 +4,58 @@ This repository is the official implementation of "Towards Neural Programming In
 
 ## Dependencies
 
-To install dependencies and get ready to run scripts, simply run:
+### Pipenv
 
-```setup
-bash install_dependencies.sh
-```
-This bash script uses pip to install needed packages.
+A PipEnv is set up in this repo with a Pipfile. You can initialize the virtual environment easily with the `pipenv` package.
+You can install that package with `pip3 install pipenv`.
 
-## Dataset generation
+After you have `pipenv` installed, you can initialize the virtual environment by running `pipenv install` in the root of this repository. That is all you need to do to initialize and install dependencies for this project!  
+(Create an issue if you see issues).
 
-To generate a dataset, run this command:
+To use the virtual environment in the shell, you can use `pipenv run <command>` to run a single command in the environment.
+You can also create a shell with the environment using `pipenv shell`. This should be convienient for those `vim` users.
 
-```data
-python construct_data.py
-```
-You may choose not to specify the target word option, in which case the default will be a set of sexist terms
+If you are using VS Code, VS Code should be able to detect the `pipenv` environment created. Upon starting VS Code, in the repository forlder, VS Code will ask you to choose a Python environment. Select the `pipenv` environment to allow VS Code to lint and autocomplete using the environment.
 
-## Training classifier
+PyCharm should also be able to detect the virtual environment as well.
 
-To train a classifier model on the generated dataset, run this command:
+### Use Bash script
+Whether or not you choose to use Pipenv, for now, there are dependencies that would need to be installed manually. Simply run the following:
 
-```classifier
-python train_classifier.py
-```
-For this and other scripts you may specify keyword arguments as you see fit.
+ * If using pipenv:
+    ```sh
+    pipenv shell
+    ./install_dependencies.sh
+    ```
+ * If installing all dependencies manually, just run `./install_dependencies.sh` as a bash command.
 
-## Evaluating classifier
+This bash script uses `pip3` to install needed packages using `requirements.txt`. It may or may not work properly depending on your environment. Therefore, it is recommended to use pipenv to create the environment.
 
-To evaluate a classifier model, run this command:
+## How to work with this project
 
-```evaluate
-python test_classifier.py
-```
-And observe printed output. If classifier's performance is low, consider training again with a different class-learning-rate
+### Jupyter Notebooks
 
-## Training NPI
+As you are experimenting with this project, it is recommended to use Jupyter notebooks so you can quickly try out the repository and make modifications on the fly.
 
-To train an NPI model, run this command:
+A good example of usage can be seen in `notebooks/politics/politics.ipynb`
 
-```train
-python train_npi.py
-```
+### CLI
 
-## Evaluating NPI
+**This is a WIP**
 
-To evaluate an NPI model, run this command:
+After installing the environment, you will also be able to run scripts. You should be able to run scripts (if using `pipenv`) with these two options:
 
-```classifier
-python test_npi.py
-```
+ * `pipenv run python -m npi <command>`
+
+ * or:
+    ```sh
+    pipenv shell
+    python -m npi <command>
+    ```
 
 ## Pre-trained Models
 
-Pre-trained models for "cat"-induction, "cat"-avoidance, racial-slur-avoidance, and sexist-slur-avoidance in folder
-
-```pretrained
-pretrained_models
-```
+Pre-trained models for "cat"-induction, "cat"-avoidance, racial-slur-avoidance, and sexist-slur-avoidance are in the `model/pretrained` folder
 
 ## Results
 

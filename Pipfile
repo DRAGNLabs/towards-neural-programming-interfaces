@@ -4,6 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+"dragn.npi" = {editable = true, path = "."}
 numpy = "*"
 torch = "==1.5.1"
 torchvision = "==0.6.1"

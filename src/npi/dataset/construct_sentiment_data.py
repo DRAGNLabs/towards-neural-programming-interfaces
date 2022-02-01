@@ -19,7 +19,7 @@ from transformers import GPT2LMHeadModel, GPT2Tokenizer
 from tqdm import tqdm
 import faulthandler # Debugging segfaults
 
-from src.utils import top_k_top_p_filtering
+from npi.utils import top_k_top_p_filtering
 
 # define how sentence label vectors shall be indexed
 FAKE_DATA_INDEX = 0

@@ -1,9 +1,9 @@
 from argparse import ArgumentParser
-from src.training.test_classifier import test_classifier
-from src.training.test_npi import test_npi
-from src.training.train_classifier import train_classifier
+from npi.training.test_classifier import test_classifier
+from npi.training.test_npi import test_npi
+from npi.training.train_classifier import train_classifier
 
-from src.training.train_npi import train_adversarial_NPI
+from npi.training.train_npi import train_adversarial_NPI
 
 def train(args):
     model = args["model"]

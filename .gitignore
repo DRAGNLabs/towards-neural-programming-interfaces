@@ -16,3 +16,4 @@ test_out
 #Python
 __pycache__
 *.egg-info
+build

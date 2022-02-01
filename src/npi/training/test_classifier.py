@@ -15,8 +15,8 @@ import pickle as pkl
 import numpy as np
 import torch
 
-from src.dataset.npi_dataset import extract_needed_layers
-from src.models.classifiers import Classifier
+from npi.dataset.npi_dataset import extract_needed_layers
+from npi.models.classifiers import Classifier
 
 def test_classifier(args):
     EPOCH_NUM_LIST = [int(pi) for pi in args.test_epochs.split(',')]

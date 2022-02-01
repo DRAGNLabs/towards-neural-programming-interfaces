@@ -13,7 +13,7 @@ import os
 import torch
 from torch.nn import functional as F
 from typing import List
-from src.models.npi import GPT2LMHeadModel, GPT2LMWithNPI
+from npi.models.npi import GPT2LMHeadModel, GPT2LMWithNPI
 from transformers.tokenization_gpt2 import GPT2Tokenizer
 from src import utils
 

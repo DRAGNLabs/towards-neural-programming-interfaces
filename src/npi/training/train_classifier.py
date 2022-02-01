@@ -28,10 +28,10 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-from src.dataset.npi_dataset import NPIDataSet
+from npi.dataset.npi_dataset import NPIDataSet
 
-from src.modeling_neural_program_interfaces import *
-from src.models.classifiers import Classifier  # from transformers import *
+from npi.modeling_neural_program_interfaces import *
+from npi.models.classifiers import Classifier  # from transformers import *
 
 def load_training_data(file_path, args, split_ratio=.25):  # with test-train split
     with open(file_path, 'rb') as datafile:
