@@ -8,7 +8,7 @@
 
 import argparse
 import torch
-from .construct_sentiment_data import construct_sentiment_data
+from npi.dataset.construct_sentiment_data import construct_sentiment_data
 import pandas as pd
 
 """

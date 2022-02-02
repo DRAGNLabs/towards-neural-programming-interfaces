@@ -15,7 +15,7 @@ from torch.nn import functional as F
 from typing import List
 from npi.models.npi import GPT2LMHeadModel, GPT2LMWithNPI
 from transformers.tokenization_gpt2 import GPT2Tokenizer
-from src import utils
+from npi import utils
 
 # big_text_file = "smaller_wiki_books_reddit_shuffled.txt"
 offensive_words_document = "../../data/raw/sexist_terms.txt"  # VAR

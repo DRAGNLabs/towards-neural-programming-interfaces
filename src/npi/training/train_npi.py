@@ -140,13 +140,11 @@ def load_models(args, input_activs_shape, input_targ_shape):
     npi_model = None
     if npi_type == "adversarial":
         npi_model = NPINetwork(input_activs_shape, input_targ_shape).float()
+        if args.npi_model_path is not None:
+            npi_model.load_state_dict(torch.load(args.npi_model_path, map_location="cpu"))
+            npi_model.eval()
     else:
         raise NotImplementedError("NPI should be trained adversarially")
-    if args.npi_model_path is not None:
-        npi_model.load_state_dict(torch.load(args.npi_model_path, map_location="cpu"))
-        npi_model.eval()
-    else:
-        raise NotImplementedError("Requested model {} has not been implemented.".format(npi_type))
     npi_model.cuda()
 
     # Creating ContentClassifier Model
