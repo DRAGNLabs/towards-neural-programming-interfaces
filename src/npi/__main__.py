@@ -6,7 +6,7 @@ from npi.dataset.npi_dataset import NPIDataSet
 from npi.models import NPITrainingModels, Classifier
 from npi.training.test_classifier import test_classifier
 
-# from npi.training.test_npi import test_npi
+from npi.training.test_npi import test_npi
 from npi.training.train_classifier import train_classifier
 
 from npi.training import NPITrainer
@@ -39,11 +39,10 @@ def train(args):
 
 
 def test(args):
-    model = args["model"]
-    if model == "npi":
-        # test_npi(args)
-        pass
-    elif model == "classifier":
+    model = args.model
+    if(model == "npi"):
+        test_npi(args)
+    elif(model == "classifier"):
         test_classifier(args)
     else:
         print("Only can train classifier or npi.")

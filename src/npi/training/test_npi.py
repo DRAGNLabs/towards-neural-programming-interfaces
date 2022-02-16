@@ -13,30 +13,25 @@ import os
 import torch
 from torch.nn import functional as F
 from typing import List
-from npi.models.npi import GPT2LMHeadModel, GPT2LMWithNPI
-from transformers.tokenization_gpt2 import GPT2Tokenizer
-from npi import utils
 
-# big_text_file = "smaller_wiki_books_reddit_shuffled.txt"
-offensive_words_document = "../../data/raw/sexist_terms.txt"  # VAR
-with open(offensive_words_document, 'r') as f:
-    OFFENSIVE_WORDS = f.readlines()
-OFFENSIVE_WORDS = [word.strip('\n') for word in OFFENSIVE_WORDS]
+# give path to remaining imports
+#import sys
+#sys.path.append('../')
 
+from npi.modeling_neural_program_interfaces import GPT2LMHeadModel, GPT2LMWithNPI
+from npi.transformers.tokenization_gpt2 import GPT2Tokenizer
+import npi.utils
+#from npi.models.npi import GPT2LMHeadModel, GPT2LMWithNPI
+#from transformers.tokenization_gpt2 import GPT2Tokenizer
+#from npi import utils
 
-def count_target(sent: str, targets: List[str]=OFFENSIVE_WORDS):
-    sent = sent.lower().replace(".", " ").replace("!", " ").replace("?", " ")
+def count_target(sent: str, targets: List[str]):
+    sent = sent.lower().replace(".", " ").replace("!", " ").replace("?", " ")          # happens inline for test_npi_fast.py
     target_count = 0
 
     for word in targets:
         target_count += sent.count(word)
     return target_count
-
-# TODO: Unused
-def filter_for_printing(sent):
-    for word in OFFENSIVE_WORDS:
-        sent = sent.replace(word, word[0] + "*" * (len(word) - 2) + word[-1])
-    return sent
 
 def load_input_file(file: str, max_lines: int, test_avoidance: bool, targets: str) -> List[str]:
     in_texts_list = []
@@ -224,14 +219,12 @@ def generate_text_with_NPI(in_text, lm_model, vanilla_lm_model, tokenizer, pertu
 
 
 def test_npi(args):
-    # Adds spaces in front of targets. Default is the list of offensive words.
-    targets = [" " + target + " " for target in args.target_words] if args.target_words[0] != "SEXIST-TERMS" else None  # default
+    # Adds spaces around targets. Default is the list of sexist terms.
+    targets = [" " + target + " " for target in args.target_words]
 
     NPIs_to_test: List[str] = args.models_list
 
-    pis_list = [
-                   [5, 11],  # VAR
-               ] * len(NPIs_to_test)
+    pis_list = [args.perturbation_layers] * len(NPIs_to_test) # VAR
 
     input_text_file: str = args.input_text_file  # VAR
     max_lines: int = args.input_text_lines  # VAR
@@ -240,30 +233,26 @@ def test_npi(args):
 
     OUTPUT_DIR = args.output_dir  # VAR
 
-    print(F"Configuration\n  Models to test: {NPIs_to_test}\n  Target Word: {targets}\n  \
+    print(F"\nConfiguration\n  Models to test: {NPIs_to_test}\n  Target Word: {targets}\n  \
             Input Text File: {input_text_file}\n  Max lines to test: {max_lines}\n  Focus on test avoidance: {test_avoidance}\n  \
-            Input Text: {input_text}\n  Output directory: {OUTPUT_DIR}")
+            Input Text: {input_text}\n  Output directory: {OUTPUT_DIR}\n")
 
     if not os.path.exists(OUTPUT_DIR):  # create dir
         os.mkdir(OUTPUT_DIR)
 
     # Text prompts for language generation we pull from a corpus
     in_texts_list = [input_text] if input_text \
-            else load_input_file(input_text_file, max_lines, test_avoidance, targets or OFFENSIVE_WORDS)
+            else load_input_file(input_text_file, max_lines, test_avoidance, targets)
         
 
     for ind, (path_to_npi, perturbation_indices) in enumerate(zip(NPIs_to_test, pis_list)):
         print("")
         print("##########################################################")
-        print("#### About to start testing for {} with perterub indices {}, test number {} #####".format(path_to_npi,
+        print("#### About to start testing for {} with perterb indices {}, test number {} #####".format(path_to_npi,
                                                                                                          perturbation_indices,
                                                                                                          ind))
         print("#########################################################")
         print("")
-
-        # user_input = input("Press ENTER to proceed or type 'stop' to quit: ")
-        # if 'stop' in user_input.lower() or 'quit' in user_input.lower():
-        #     raise KeyboardInterrupt("System quit by user")
 
         outfile_name = OUTPUT_DIR + '/' + str(ind)
         f = open(outfile_name + '_counts.txt', 'w')
@@ -271,7 +260,11 @@ def test_npi(args):
         f.write('\n')
         f.close()
 
-        npi_model = torch.load(path_to_npi, map_location=torch.device('cpu'))
+        # choose to run npi_model on cpu or gpu, why was CPU the default?
+        if args.device == "cpu":
+            npi_model = torch.load(path_to_npi, map_location=torch.device('cpu'))
+        else:
+            npi_model = torch.load(path_to_npi).cuda()
 
         vanilla_lm_model = GPT2LMHeadModel.from_pretrained("gpt2")
         npi_lm_model = GPT2LMWithNPI.from_pretrained("gpt2")
@@ -387,9 +380,9 @@ def test_npi(args):
         print("total_perturbed_count", total_perturbed_count)
         print("")
 
-        print("target {} present in GPT-2 input: {}".format(targets or "SEXIST-TERMS", input_instances))
-        print("target {} present in untouched GPT-2 output: {}".format(targets or "SEXIST-TERMS", vanilla_instances))
-        print("target {} present in perturbed GPT-2 output: {}".format(targets or "SEXIST-TERMS", perturbed_instances))
+        print("target {} present in GPT-2 input: {}".format(targets, input_instances))
+        print("target {} present in untouched GPT-2 output: {}".format(targets, vanilla_instances))
+        print("target {} present in perturbed GPT-2 output: {}".format(targets, perturbed_instances))
         print("")
         print("switched_to_target", switched_to_target)
         print("switched_from_target", switched_from_target)
@@ -398,18 +391,18 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', '--models-list', nargs='+', default=[
-        "npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_network_epoch20.bin",
-        "npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_network_epoch30.bin",
-        "npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_network_epoch40.bin",
-        "npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_network_epoch50.bin",
-        "npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_vfinal.bin",
+        "../../../models/npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_network_epoch20.bin",
+        "../../../models/npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_network_epoch30.bin",
+        "../../../models/npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_network_epoch40.bin",
+        "../../../models/npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_network_epoch50.bin",
+        "../../../models/npi_models/params_discco3.0_styco10.0_simco1.0_layers_5_11/adversarial_npi_vfinal.bin",
     ])
     parser.add_argument("-t", "--target-words", nargs='+', 
-                        default="SEXIST-TERMS",
-                        help="words to target\n'SEXIST-TERMS' is a special value for this argument"
+                        default=None,
+                        help="words to target, default is None"
                         )
     parser.add_argument("-f", "--input-text-file",
-                        default="data/sexist_sents_1000.pkl",
+                        default="../../../data/processed/sexist/sexist_sents_1000.pkl",
                         help="The input text. Can also be pickled")
     parser.add_argument("-l", "--input-text-lines",
                         default=1000,
@@ -422,6 +415,12 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--output-dir",
                         default="sexism_test_data",
                         help="Output directory of test results")
+    parser.add_argument("-p", "--perturbation-layers", nargs='+',
+                        default=[5,11],
+                        help="Hidden layers to pull out of the GPT-2 model (default is [5,11])")
+    parser.add_argument("-d", "--device",
+                        default="cpu",
+                        help="Device to run NPI model on. Default is cpu, can also specify 'gpu'")
 
     args = parser.parse_args()
     

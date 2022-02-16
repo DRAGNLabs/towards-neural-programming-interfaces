@@ -38,7 +38,7 @@ from npi.dataset.npi_dataset import NPIDataLoader, NPIDataSet
 from npi.models.classifiers import Classifier, GenerationClassifier
 from npi.models.npi import GPT2LMWithNPI, NPINetwork
 
-from transformers import GPT2Tokenizer
+from npi.transformers import GPT2Tokenizer
 
 import faulthandler # Debugging seg faults
 

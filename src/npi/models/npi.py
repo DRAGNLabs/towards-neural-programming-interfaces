@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.nn import functional as F
 from torch.nn import CrossEntropyLoss
 
-from transformers import GPT2Model, GPT2LMHeadModel
+from npi.transformers import GPT2Model, GPT2LMHeadModel
 from npi.utils import top_k_top_p_filtering
 
 # NPI Neural Model Code -------------------------------------------------------------------------------

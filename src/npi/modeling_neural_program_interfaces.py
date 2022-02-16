@@ -32,7 +32,7 @@ import torch
 import torch.nn.functional as F
 from torch.nn import CrossEntropyLoss
 from tqdm import trange
-from transformers import GPT2LMHeadModel, GPT2Model, GPT2Tokenizer
+from npi.transformers import GPT2LMHeadModel, GPT2Model, GPT2Tokenizer
 #from transformers.models.gpt2 import GPT2Tokenizer
 
 torch.manual_seed(1)
