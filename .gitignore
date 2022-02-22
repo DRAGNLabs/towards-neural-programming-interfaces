@@ -6,6 +6,10 @@ classifiers/
 npi_models
 test_out
 
+# VS Code
+.vscode
+.devcontainer
+
 # Mac OS-specific storage files
 .DS_Store
 

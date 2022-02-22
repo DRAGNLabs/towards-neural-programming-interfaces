@@ -8,7 +8,7 @@ from npi.utils import top_k_top_p_filtering
 
 # NPI Neural Model Code -------------------------------------------------------------------------------
 class NPINetwork(nn.Module):
-    def __init__(self, input_activs_shape, input_targ_shape):
+    def __init__(self, input_activs_shape):
         """
         input_activs_shape: tuple of (n, m, 1)
             n x m x 1 slices contain the elements of the original activations, flattened into a 2D array
@@ -20,45 +20,54 @@ class NPINetwork(nn.Module):
         self.k = input_activs_shape[2]
 
         # Setting Scaling Factors
-        fact1 = 2 ** 2
-        fact2 = 2 ** 3
-        fact3 = 2 ** 3
+        fact1 = 2**2
+        fact2 = 2**3
+        fact3 = 2**3
 
         # Defining first npi layer
-        self.first_linear = nn.Sequential(nn.Linear((self.n) * self.m * self.k, self.n // fact1),
-                                          nn.ReLU(),
-                                          )
-        self.second_linear = nn.Sequential(nn.Linear(self.n // fact1, self.n // fact1),
-                                           nn.ReLU(),
-                                           )
-        self.third_linear = nn.Sequential(nn.Linear(self.n // fact1, self.n // fact2),
-                                          nn.ReLU(),
-                                          )
-        self.fourth_linear = nn.Sequential(nn.Linear(self.n // fact2, self.n // fact2),
-                                           nn.ReLU(),
-                                           )
-        self.fourth_linear_residual = nn.Sequential(nn.Linear(self.n // fact2, self.n // fact3),
-                                                    nn.ReLU(),
-                                                    )
-        self.fifth_linear = nn.Sequential(nn.Linear(self.n // fact3, self.n // fact2),
-                                          nn.ReLU(),
-                                          )
-        self.sixth_linear = nn.Sequential(nn.Linear(self.n // fact2, self.n // fact1),
-                                          nn.ReLU(),
-                                          )
-        self.seventh_linear = nn.Sequential(nn.Linear(self.n // fact1, self.n // fact1),
-                                            nn.ReLU(),
-                                            )
-        self.last_linear = nn.Sequential(nn.Linear(self.n // fact1, self.n * self.m * self.k),
-                                         )
-
-        pass
+        self.first_linear = nn.Sequential(
+            nn.Linear((self.n) * self.m * self.k, self.n // fact1),
+            nn.ReLU(),
+        )
+        self.second_linear = nn.Sequential(
+            nn.Linear(self.n // fact1, self.n // fact1),
+            nn.ReLU(),
+        )
+        self.third_linear = nn.Sequential(
+            nn.Linear(self.n // fact1, self.n // fact2),
+            nn.ReLU(),
+        )
+        self.fourth_linear = nn.Sequential(
+            nn.Linear(self.n // fact2, self.n // fact2),
+            nn.ReLU(),
+        )
+        self.fourth_linear_residual = nn.Sequential(
+            nn.Linear(self.n // fact2, self.n // fact3),
+            nn.ReLU(),
+        )
+        self.fifth_linear = nn.Sequential(
+            nn.Linear(self.n // fact3, self.n // fact2),
+            nn.ReLU(),
+        )
+        self.sixth_linear = nn.Sequential(
+            nn.Linear(self.n // fact2, self.n // fact1),
+            nn.ReLU(),
+        )
+        self.seventh_linear = nn.Sequential(
+            nn.Linear(self.n // fact1, self.n // fact1),
+            nn.ReLU(),
+        )
+        self.last_linear = nn.Sequential(
+            nn.Linear(self.n // fact1, self.n * self.m * self.k),
+        )
 
     def forward(self, orig_activs):
-        metadata = {'ordered_hidden_activations': [],
-                    'final_out_preview': None,
-                    'final_out_returned': None,
-                    'concatenated_input': None}
+        metadata = {
+            "ordered_hidden_activations": [],
+            "final_out_preview": None,
+            "final_out_returned": None,
+            "concatenated_input": None,
+        }
         combined = orig_activs  # torch.cat((target_label, orig_activs), dim=1)
         first_out = self.first_linear(combined.view(-1, (self.n) * self.m * self.k))
         second_out = self.second_linear(first_out)
@@ -77,13 +86,13 @@ class NPINetwork(nn.Module):
         final_out = out_linear.view(-1, self.n, self.m, self.k)
 
         # metadata['ordered_hidden_activations'] = [first_out.detach().data.cpu().numpy(),
-        #                                          second_out.detach().data.cpu().numpy(), 
-        #                                          third_out.detach().data.cpu().numpy(), 
-        #                                          fourth_out.detach().data.cpu().numpy(), 
-        #                                          fourth_out_resid.detach().data.cpu().numpy(), 
-        #                                          fifth_out.detach().data.cpu().numpy(), 
-        #                                          sixth_out.detach().data.cpu().numpy(), 
-        #                                          seventh_out.detach().data.cpu().numpy(), 
+        #                                          second_out.detach().data.cpu().numpy(),
+        #                                          third_out.detach().data.cpu().numpy(),
+        #                                          fourth_out.detach().data.cpu().numpy(),
+        #                                          fourth_out_resid.detach().data.cpu().numpy(),
+        #                                          fifth_out.detach().data.cpu().numpy(),
+        #                                          sixth_out.detach().data.cpu().numpy(),
+        #                                          seventh_out.detach().data.cpu().numpy(),
         #                                          ]
         # metadata['final_out_preview'] = out_linear.detach().data.cpu().numpy()
         # metadata['final_out_returned'] = final_out.detach().data.cpu().numpy()
@@ -130,8 +139,16 @@ class GPT2WithNPI(GPT2Model):
         self.perturbation_indices = prediction_indices  # NPI added functionality
         self.output_hidden_states = True
 
-    def forward(self, input_ids, past=None, attention_mask=None, token_type_ids=None, position_ids=None, head_mask=None,
-                activation_perturbations=None):
+    def forward(
+        self,
+        input_ids,
+        past=None,
+        attention_mask=None,
+        token_type_ids=None,
+        position_ids=None,
+        head_mask=None,
+        activation_perturbations=None,
+    ):
         input_shape = input_ids.size()
         input_ids = input_ids.view(-1, input_shape[-1])
         if token_type_ids is not None:
@@ -145,8 +162,12 @@ class GPT2WithNPI(GPT2Model):
         else:
             past_length = past[0][0].size(-2)
         if position_ids is None:
-            position_ids = torch.arange(past_length, input_ids.size(-1) + past_length, dtype=torch.long,
-                                        device=input_ids.device)
+            position_ids = torch.arange(
+                past_length,
+                input_ids.size(-1) + past_length,
+                dtype=torch.long,
+                device=input_ids.device,
+            )
             position_ids = position_ids.unsqueeze(0).expand_as(input_ids)
 
         # Attention mask.
@@ -164,7 +185,9 @@ class GPT2WithNPI(GPT2Model):
             # positions we want to attend and -10000.0 for masked positions.
             # Since we are adding it to the raw scores before the softmax, this is
             # effectively the same as removing these entirely.
-            attention_mask = attention_mask.to(dtype=next(self.parameters()).dtype)  # fp16 compatibility
+            attention_mask = attention_mask.to(
+                dtype=next(self.parameters()).dtype
+            )  # fp16 compatibility
             attention_mask = (1.0 - attention_mask) * -10000.0
 
         # Prepare head mask if needed
@@ -173,13 +196,17 @@ class GPT2WithNPI(GPT2Model):
         # head_mask has shape n_layer x batch x n_heads x N x N
         if head_mask is not None:
             if head_mask.dim() == 1:
-                head_mask = head_mask.unsqueeze(0).unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
+                head_mask = (
+                    head_mask.unsqueeze(0).unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
+                )
                 head_mask = head_mask.expand(self.config.n_layer, -1, -1, -1, -1)
             elif head_mask.dim() == 2:
-                head_mask = head_mask.unsqueeze(1).unsqueeze(-1).unsqueeze(
-                    -1)  # We can specify head_mask for each layer
+                head_mask = (
+                    head_mask.unsqueeze(1).unsqueeze(-1).unsqueeze(-1)
+                )  # We can specify head_mask for each layer
             head_mask = head_mask.to(
-                dtype=next(self.parameters()).dtype)  # switch to fload if need + fp16 compatibility
+                dtype=next(self.parameters()).dtype
+            )  # switch to fload if need + fp16 compatibility
         else:
             head_mask = [None] * self.config.n_layer
 
@@ -200,12 +227,16 @@ class GPT2WithNPI(GPT2Model):
         # print("GPT2WithNPI: Total num layers == ", len(self.h))
         for i, (block, layer_past) in enumerate(zip(self.h, past)):
             if self.output_hidden_states:
-                all_hidden_states = all_hidden_states + (hidden_states.view(*output_shape),)
+                all_hidden_states = all_hidden_states + (
+                    hidden_states.view(*output_shape),
+                )
 
-            outputs = block(hidden_states,
-                            layer_past=layer_past,
-                            attention_mask=attention_mask,
-                            head_mask=head_mask[i])
+            outputs = block(
+                hidden_states,
+                layer_past=layer_past,
+                attention_mask=attention_mask,
+                head_mask=head_mask[i],
+            )
 
             hidden_states, present = outputs[:2]
             for j, index in enumerate(self.perturbation_indices):
@@ -231,8 +262,12 @@ class GPT2WithNPI(GPT2Model):
             outputs = outputs + (all_hidden_states,)
         if self.output_attentions:
             # let the number of heads free (-1) so we can extract attention even after head pruning
-            attention_output_shape = input_shape[:-1] + (-1,) + all_attentions[0].shape[-2:]
-            all_attentions = tuple(t.view(*attention_output_shape) for t in all_attentions)
+            attention_output_shape = (
+                input_shape[:-1] + (-1,) + all_attentions[0].shape[-2:]
+            )
+            all_attentions = tuple(
+                t.view(*attention_output_shape) for t in all_attentions
+            )
             outputs = outputs + (all_attentions,)
         return outputs  # last hidden state, presents, (all hidden_states), (attentions)
 
@@ -284,26 +319,38 @@ class GPT2LMWithNPI(GPT2LMHeadModel):
 
         GPT2LMHeadModel.__init__(self, config)  # NPI added functionality
 
-    def initialize_npi(self, prediction_indices, lang_model_type='gpt2'):
+    def initialize_npi(self, prediction_indices, lang_model_type="gpt2"):
         self.perturbation_indices = prediction_indices  # NPI added functionality
         # self.output_hidden_states = True
         self.transformer = GPT2WithNPI.from_pretrained(
-            lang_model_type)  # (config, self.npi, self.prediction_indices) # NPI added functionality
+            lang_model_type
+        )  # (config, self.npi, self.prediction_indices) # NPI added functionality
         self.transformer.initialize_npi(prediction_indices)
         self.npi_model = None
 
-    def forward(self, input_ids, past=None, attention_mask=None, token_type_ids=None, position_ids=None, head_mask=None,
-                labels=None, activation_perturbations=None):
+    def forward(
+        self,
+        input_ids,
+        past=None,
+        attention_mask=None,
+        token_type_ids=None,
+        position_ids=None,
+        head_mask=None,
+        labels=None,
+        activation_perturbations=None,
+    ):
         """
         target_classification : nx1x1 target classification vector  # NPI added functionality
         """
-        transformer_outputs = self.transformer(input_ids,
-                                               past=past,
-                                               attention_mask=attention_mask,
-                                               token_type_ids=token_type_ids,
-                                               position_ids=position_ids,
-                                               head_mask=head_mask,
-                                               activation_perturbations=activation_perturbations)  # NPI added functionality
+        transformer_outputs = self.transformer(
+            input_ids,
+            past=past,
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
+            position_ids=position_ids,
+            head_mask=head_mask,
+            activation_perturbations=activation_perturbations,
+        )  # NPI added functionality
         hidden_states = transformer_outputs[0]
 
         lm_logits = self.lm_head(hidden_states)
@@ -315,14 +362,23 @@ class GPT2LMWithNPI(GPT2LMHeadModel):
             shift_labels = labels[..., 1:].contiguous()
             # Flatten the tokens
             loss_fct = CrossEntropyLoss(ignore_index=-1)
-            loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)),
-                            shift_labels.view(-1))
+            loss = loss_fct(
+                shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1)
+            )
             outputs = (loss,) + outputs
 
         return outputs  # (loss), lm_logits, presents, (all hidden_states), (attentions)
 
-    def obtain_perturbed_GPT2WithNPI_outputs(self, npi_batched_perturbations, perturbation_indices, \
-                                             data_rows, tokenizer=None, max_seq_len=10, num_seq_iters=10, device=None):
+    def obtain_perturbed_GPT2WithNPI_outputs(
+        self,
+        npi_batched_perturbations,
+        perturbation_indices,
+        data_rows,
+        tokenizer=None,
+        max_seq_len=10,
+        num_seq_iters=10,
+        device=None,
+    ):
         # obtain perturbed GPT2WithNPI outputs: START
         LANG_MODEL_ACTS_IND = 0
         ACTS_CLASSIF_IND = 1
@@ -334,8 +390,8 @@ class GPT2LMWithNPI(GPT2LMHeadModel):
         TARG_TEXT_INDEX = 7
         GPT2_TEXT_INDEX = 8  # the text of what the gpt2 actually produced
         top_k = 1
-        top_p = .9
-        temperature = 1.
+        top_p = 0.9
+        temperature = 1.0
         masking_coeff = 1e12
 
         batched_deltas_shape = npi_batched_perturbations.size()
@@ -349,16 +405,18 @@ class GPT2LMWithNPI(GPT2LMHeadModel):
         # iterating over batches
         for j in range(b):
             # create input_ids
-            tokens = data_rows[j][META_DATA_IND]['orig_tokens']
+            tokens = data_rows[j][META_DATA_IND]["orig_tokens"]
             tokens = torch.tensor(tokens, dtype=torch.long)  # , device=device)
             tokens = tokens.unsqueeze(0).repeat(1, 1)
-            tokens = tokens.cuda()
+            tokens = tokens.cuda(device=device)
 
             # create list of un-flattened activation_perturbations from current batch elem
             # creating curr_perturbs
             reshaped = npi_batched_perturbations[j, :, :, 0].view(1, n, m, 1)
             # chunking with reshaped size == reshaped.size()
-            chunked = torch.chunk(reshaped, num_seq_iters * len(self.perturbation_indices), dim=1)
+            chunked = torch.chunk(
+                reshaped, num_seq_iters * len(self.perturbation_indices), dim=1
+            )
             # ^ each hidden layer in the hugging face repo has shape (batch, seq_len, hidden_size)
             # casting chunked as list
             curr_perturbs = [x.view(1, max_seq_len, m) for x in chunked]
@@ -372,10 +430,14 @@ class GPT2LMWithNPI(GPT2LMHeadModel):
             for i in range(num_seq_iters):
 
                 # Now run the model
-                logits, presents, all_hiddens = self.forward(input_ids=tokens[:, -max_seq_len:], \
-                                                             activation_perturbations=curr_perturbs[i * len(
-                                                                 self.perturbation_indices):(i + 1) * len(
-                                                                 self.perturbation_indices)])
+                logits, presents, all_hiddens = self.forward(
+                    input_ids=tokens[:, -max_seq_len:],
+                    activation_perturbations=curr_perturbs[
+                        i
+                        * len(self.perturbation_indices) : (i + 1)
+                        * len(self.perturbation_indices)
+                    ],
+                )
                 # all_hiddens is a list of len
                 # 25 or 13 with tensors of shape (gpt2 medium of small)
                 # (1,sent_len,1024) or (1,sent_len,768)
@@ -385,20 +447,34 @@ class GPT2LMWithNPI(GPT2LMHeadModel):
 
                 # Now we extract the new token and add it to the list of tokens
                 next_token_logits = logits[0, -1, :] / temperature
-                filtered_logits = top_k_top_p_filtering(next_token_logits, top_k=top_k, top_p=top_p)
-                next_token = torch.multinomial(F.softmax(filtered_logits, dim=-1), num_samples=1)
+                filtered_logits = top_k_top_p_filtering(
+                    next_token_logits, top_k=top_k, top_p=top_p
+                )
+                next_token = torch.multinomial(
+                    F.softmax(filtered_logits, dim=-1), num_samples=1
+                )
                 next_token_list = next_token.tolist()
                 next_word = tokenizer.decode(next_token_list)
-                sent = sent + " " + next_word  # we just update this so sent remains accurate for dict
+                sent = (
+                    sent + " " + next_word
+                )  # we just update this so sent remains accurate for dict
                 generated_sent = generated_sent + next_word + " "
 
                 # ...update list of tokens
                 tokens = torch.cat((tokens, next_token.unsqueeze(0)), dim=1).cuda()
             if tokenizer is not None:
-                npi_sent_for_data_set = tokenizer.decode([x.item() for x in tokens[:, -max_seq_len:].flatten()])
+                npi_sent_for_data_set = tokenizer.decode(
+                    [x.item() for x in tokens[:, -max_seq_len:].flatten()]
+                )
                 npi_resulting_text.append(
-                    [data_rows[j][ORIG_TEXT_IND], data_rows[j][GPT2_TEXT_INDEX], data_rows[j][TARG_TEXT_INDEX],
-                     npi_sent_for_data_set, sent])
+                    [
+                        data_rows[j][ORIG_TEXT_IND],
+                        data_rows[j][GPT2_TEXT_INDEX],
+                        data_rows[j][TARG_TEXT_INDEX],
+                        npi_sent_for_data_set,
+                        sent,
+                    ]
+                )
 
             del tokens
 
@@ -419,4 +495,3 @@ class GPT2LMWithNPI(GPT2LMHeadModel):
         resulting_gpt2_activations = torch.cat(gpt2_perturbed_outs, dim=0)
         # obtain perturbed GPT2WithNPI outputs: STOP
         return resulting_gpt2_activations, npi_resulting_text  # this is batched
-

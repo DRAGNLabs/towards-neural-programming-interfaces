@@ -3,6 +3,8 @@ import torch
 
 from torch.utils.data import Dataset, DataLoader
 
+from npi.config import NPIConfig
+
 torch.manual_seed(1)
 
 LM_CONFIG_DICT = {'gpt2': {'total_layers': 13, 'm': 768},
@@ -47,7 +49,7 @@ def extract_needed_layers(array, pis, num_total_layers=13, seq_len=10, num_iters
 
 
 class NPIDataSet(Dataset):
-    def __init__(self, dataset, pred_inds, return_row=False, permitted_rows=None, start_index=0, model_to_use='gpt2', seq_len=10, num_iters=10):
+    def __init__(self, dataset, config: NPIConfig, return_row=False, permitted_rows=None, start_index=0):
         """
         Assumes input dataset is of the form:
             [[language_model_activations, 
@@ -66,15 +68,15 @@ class NPIDataSet(Dataset):
             meta_data : dict recording desired metadata (required for NPI training later)
         """
         self.return_row = return_row
-        self.seq_len = seq_len 
-        self.num_iters = num_iters  
+        self.seq_len = config.max_seq_len 
+        self.num_iters = config.num_seq_iters  
 
-        lm_config = LM_CONFIG_DICT[model_to_use] # Defaults to 'gpt2'
+        lm_config = LM_CONFIG_DICT[config.gpt_model]
         self.num_total_layers = lm_config['total_layers']
         self.m = lm_config['m']
 
         # Calculate n from pis
-        self.n = len(pred_inds) * seq_len * num_iters  # could be 200
+        self.n = len(config.perturbation_indices) * self.seq_len * self.num_iters  # could be 200
 
         # self.masking_coeff = 1e12
 
@@ -94,7 +96,7 @@ class NPIDataSet(Dataset):
             # cast everything as torch tensors, extract needed layers
             self.dataset[i][ORIG_ACTIV_INDEX] = torch.from_numpy(
                 extract_needed_layers(
-                    self.dataset[i][ORIG_ACTIV_INDEX], pis=pred_inds, num_total_layers=self.num_total_layers, seq_len=seq_len, num_iters=num_iters)).double()
+                    self.dataset[i][ORIG_ACTIV_INDEX], pis=config.perturbation_indices, num_total_layers=self.num_total_layers, seq_len=config.max_seq_len, num_iters=config.num_seq_iters)).double()
             self.dataset[i][ORIG_LABEL_INDEX] = torch.from_numpy(
                 np.array(self.dataset[i][ORIG_LABEL_INDEX])).double()
             self.dataset[i][TARG_LABEL_INDEX] = torch.tensor([])  # empty tensor
@@ -115,7 +117,7 @@ class NPIDataSet(Dataset):
 
 class NPIDataLoader(DataLoader):
     def __init__(self, data, batch_size, pin_memory):
-        super(NPIDataLoader, self).__init__(data, batch_size=batch_size, pin_memory=pin_memory)
+        super(NPIDataLoader, self).__init__(data, batch_size=batch_size, pin_memory=pin_memory, drop_last=True)
         self.data = data
 
     def get_row_data(self, dataset_indices):
