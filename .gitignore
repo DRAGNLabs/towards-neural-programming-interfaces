@@ -3,6 +3,7 @@ transformers/
 BID*
 classifiers/
 *.pkl_*
+*.tar
 npi_models
 test_out
 

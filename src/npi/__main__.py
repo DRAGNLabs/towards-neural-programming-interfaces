@@ -1,8 +1,10 @@
 from argparse import ArgumentParser
 import pickle as pkl
 import torch
+import webdataset as wds
+
 from npi.config import NPIConfig
-from npi.dataset.npi_dataset import NPIDataSet
+from npi.dataset.npi_dataset import NPIDataSet, NPIDatasetLoader
 from npi.models import NPITrainingModels, Classifier
 from npi.training.test_classifier import test_classifier
 
@@ -11,27 +13,20 @@ from npi.training.train_classifier import train_classifier
 
 from npi.training import NPITrainer
 
-
 def train(args):
     model = args.model
     device = torch.device("cuda:0")  # TODO: Hyperparam
     num_epochs = 6  # TODO: Hyperparam
     split_ratio = 0.25  # TODO: Hyperparam
-    config = NPIConfig(device, save_folder="../models/npi_models/")
+    config = NPIConfig(device, model_save_folder="../models/npi_models/", dataset_folder="../data/processed", npi_name="politics")
     models = NPITrainingModels(
         config,
         content_classifier_path="../notebooks/politics/classifiers/layers_5_11/Classifier_classification_network_epoch0.bin",
     )
     if model == "npi":
         trainer = NPITrainer(config, batch_size=4, headstart=0)
-        with open("../data/processed/politics/sentence_arrays.pkl_0", "rb") as datafile:
-            dataset = pkl.load(datafile)
-        max_train = len(dataset) - int(split_ratio * len(dataset))
-        train_data = NPIDataSet(dataset[:max_train], config, return_row=True)
-        test_data = NPIDataSet(dataset[max_train:], config, return_row=True)
-        trainer.train_adversarial_npi(
-            models, num_epochs, train_data, test_data
-        )
+        dataset_loader = NPIDatasetLoader(config, split_ratio=split_ratio)
+        trainer.train_adversarial_npi(models, num_epochs, dataset_loader)
     elif model == "classifier":
         train_classifier(args)
     else:
@@ -40,9 +35,9 @@ def train(args):
 
 def test(args):
     model = args.model
-    if(model == "npi"):
+    if model == "npi":
         test_npi(args)
-    elif(model == "classifier"):
+    elif model == "classifier":
         test_classifier(args)
     else:
         print("Only can train classifier or npi.")

@@ -20,7 +20,7 @@ from typing import List
 
 from npi.modeling_neural_program_interfaces import GPT2LMHeadModel, GPT2LMWithNPI
 from npi.transformers.tokenization_gpt2 import GPT2Tokenizer
-import npi.utils
+import npi.utils as utils
 #from npi.models.npi import GPT2LMHeadModel, GPT2LMWithNPI
 #from transformers.tokenization_gpt2 import GPT2Tokenizer
 #from npi import utils
