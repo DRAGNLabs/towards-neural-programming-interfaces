@@ -15,7 +15,7 @@ import numpy as np
 
 import torch
 import torch.nn.functional as F
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
+from npi.transformers import GPT2LMHeadModel, GPT2Tokenizer
 from tqdm import tqdm
 import faulthandler # Debugging segfaults
 

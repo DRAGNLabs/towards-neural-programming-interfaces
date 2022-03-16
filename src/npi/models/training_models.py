@@ -17,8 +17,8 @@ class NPITrainingModels:
         self.npi_model_path = npi_model_path
         self.content_classifier_path = content_classifier_path
         self.generation_classifier_path = generation_classifier_path
-        self.input_activs_shape = None  # TODO: Get hyperparam from config
-        self.input_targ_shape = None  # TODO: Get hyperparam from config
+        self.input_activs_shape = (config.n, config.m, 1)  
+        self.input_targ_shape = (1, 1)  
 
         self.npi_model = None
         self.content_class_model = None
@@ -93,11 +93,11 @@ class NPITrainingModels:
 
     def save_models(self, epoch="_unk"):
         print("Saving NPI Model")
-        out_path = f"{self.config.save_folder}{self.config.npi_type}_npi_network_epoch{epoch}.bin"
+        out_path = f"{self.config.model_save_folder}{self.config.npi_type}_npi_network_epoch{epoch}.bin"
         torch.save(self.npi_model.state_dict(), out_path)
 
         print("Saving GenerationClassifier Model")
         out_path = (
-            f"{self.config.save_folder}GenerationClassifier_network_epoch{epoch}.bin"
+            f"{self.config.model_save_folder}GenerationClassifier_network_epoch{epoch}.bin"
         )
         torch.save(self.generate_class_model.state_dict(), out_path)

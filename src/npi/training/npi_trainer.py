@@ -9,7 +9,7 @@ import torch.optim as optim
 
 
 from tqdm import tqdm
-from npi.dataset.npi_dataset import NPIDataLoader
+from npi.dataset.npi_dataset import NPIDataLoader, NPIDatasetLoader
 
 from npi.config import NPIConfig
 from npi.models import NPITrainingModels
@@ -103,12 +103,8 @@ class NPITrainer:
         self.generate_class_model.zero_grad()  # generate_class_optimizer.zero_grad()
 
         # labels
-        y_real_GPT2 = (
-            torch.zeros(self.batch_size).float().cuda()
-        )  # 0 = real GPT2
-        y_fake_GPT2 = (
-            torch.ones(self.batch_size).float().cuda()
-        )  # 1 = fake GPT2
+        y_real_GPT2 = torch.zeros(self.batch_size).float().cuda()  # 0 = real GPT2
+        y_fake_GPT2 = torch.ones(self.batch_size).float().cuda()  # 1 = fake GPT2
         # y_real_GPT2, y_fake_GPT2 = Variable(y_real_GPT2), Variable(y_fake_GPT2)
 
         # Now predict and get loss
@@ -122,7 +118,7 @@ class NPITrainer:
             fake_gen_pred.squeeze(), y_fake_GPT2.squeeze()
         )
         g_class_loss = self.loss_boosting_coeff * (real_loss + fake_loss)
-        
+
         g_class_loss.backward()
         self.generate_class_optimizer.step()
 
@@ -166,11 +162,12 @@ class NPITrainer:
 
         return npi_loss.item()
 
-    def get_pred_gpt2_outs(self, curr_rows, pred_activs):
+    def get_pred_gpt2_outs(self, orig_tokens, orig_text, generated_text, pred_activs):
         return self.gpt2_with_npi.obtain_perturbed_GPT2WithNPI_outputs(
             pred_activs,
-            self.config.perturbation_indices,
-            curr_rows,
+            orig_tokens,
+            orig_text,
+            generated_text,
             tokenizer=self.gpt2_tokenizer,
             max_seq_len=self.config.max_seq_len,
             num_seq_iters=self.config.num_seq_iters,
@@ -183,27 +180,20 @@ class NPITrainer:
         self.npi_model.eval()
         self.generate_class_model.eval()
 
-        for test_x, test_t, test_y, test_inds in test_loader:
+        for orig_activ, orig_tokens, orig_text, generated_text in test_loader:
 
             # Now we know functional_batch_size == batch_size
             y_real_GPT2 = torch.zeros(self.batch_size).float().cuda()  # 0 = real GPT2
             y_fake_GPT2 = torch.ones(self.batch_size).float().cuda()  # 1 = fake GPT2
             y_word = torch.ones(self.batch_size).float().cuda()
 
-            test_x, test_t, test_y = (
-                test_x.cuda(non_blocking=True).float(),
-                test_t.cuda(non_blocking=True).float(),
-                test_y.cuda(non_blocking=True).float(),
-            )
+            orig_activ = orig_activ.cuda(non_blocking=True).float()
+            orig_tokens = orig_tokens.cuda(non_blocking=True)
 
-            curr_rows = test_loader.get_row_data(test_inds)
-            for i in range(len(curr_rows)):
-                curr_rows[i] = [None] * 4 + curr_rows[i][4:]
+            test_deltas = self.npi_model(orig_activ)
+            test_gpt2_outs, test_text = self.get_pred_gpt2_outs(orig_tokens, orig_text, generated_text, test_deltas)
 
-            test_deltas = self.npi_model(test_x)
-            test_gpt2_outs, test_text = self.get_pred_gpt2_outs(curr_rows, test_deltas)
-
-            test_real_gen_pred = self.generate_class_model(test_x)
+            test_real_gen_pred = self.generate_class_model(orig_activ)
             test_fake_gen_pred = self.generate_class_model(test_gpt2_outs)
             test_real_gen_loss = self.generate_class_objective(
                 test_real_gen_pred.squeeze(), y_real_GPT2.squeeze()
@@ -244,7 +234,7 @@ class NPITrainer:
             test_style_loss = self.bce_loss(
                 test_content_classification.squeeze(), y_word.squeeze()
             )
-            test_similarity_loss = self.mse_loss(test_gpt2_outs, test_x)
+            test_similarity_loss = self.mse_loss(test_gpt2_outs, orig_activ)
             test_npi_loss = self.loss_boosting_coeff * (
                 self.discrim_coeff * test_discrim_loss
                 + self.style_coeff * test_style_loss
@@ -263,33 +253,31 @@ class NPITrainer:
     def visualize_training(self):
         make_training_plots(
             "NPI average loss per epoch",
-            self.config.save_folder,
+            self.config.model_save_folder,
             self.train_metadata["npi_losses"],
             self.test_metadata["npi_test_losses"],
         )
         make_training_plots(
             "Discriminator average loss per epoch",
-            self.config.save_folder,
+            self.config.model_save_folder,
             self.train_metadata["generate_class_losses"],
             self.test_metadata["generate_class_tests_losses"],
             self.test_metadata["generate_false_class_test_losses"],
         )
         make_training_plots(
             "Discriminator average accuracy per epoch",
-            self.config.save_folder,
+            self.config.model_save_folder,
             self.train_metadata["generate_class_accuracies"],
             self.test_metadata["generate_class_test_accuracies"],
             self.test_metadata["generate_class_false_test_accuracies"],
         )
 
     def train_adversarial_npi(
-        self, npi_training_models: NPITrainingModels, num_epochs, train_data, test_data
+        self,
+        npi_training_models: NPITrainingModels,
+        num_epochs,
+        dataset_loader: NPIDatasetLoader,
     ):
-
-        # TODO: This should be a hyper parameter in NPIConfig.
-        act0, _, _, _ = train_data[0]
-        npi_training_models.input_activs_shape = act0.size() # torch.Size([200, 768, 1])
-        npi_training_models.input_targ_shape = (1, 1)  # targ0.size() <-- None
 
         # Initialize model
         (
@@ -298,18 +286,18 @@ class NPITrainer:
             self.content_class_model,
         ) = npi_training_models.load_training_models()
 
-        #TODO: See if it is okay to initialize gpt2 here instead of every loop
+        # TODO: See if it is okay to initialize gpt2 here instead of every loop
         self.gpt2_with_npi, self.gpt2_tokenizer = npi_training_models.load_gpt2()
-        self.gpt2_with_npi.npi_model=self.npi_model
+        self.gpt2_with_npi.npi_model = self.npi_model
         self.gpt2_with_npi.cuda(device=self.config.device)
 
         # Initialize Data to train
-        self.train_loader = NPIDataLoader(
-            train_data, batch_size=self.batch_size, pin_memory=True
-        )
-        self.test_loader = NPIDataLoader(
-            test_data, batch_size=self.batch_size, pin_memory=True
-        )
+        (
+            self.train_loader,
+            self.test_loader,
+            train_len,
+            test_len,
+        ) = dataset_loader.load_train_and_test_dataloaders(self.batch_size)
 
         # Initialize optimizer
         self.npi_optimizer = optim.Adam(self.npi_model.parameters(), lr=self.npi_lr)
@@ -328,20 +316,28 @@ class NPITrainer:
             print("############ Epoch == ", epoch, " ############")
 
             # Looping through training batches
-            loop = tqdm(total=len(self.train_loader), position=0, leave=False)
-            for orig_activ, real_label, target_label, data_idx in self.train_loader:
+            loop = tqdm(total=train_len, position=0, leave=False)
+            for (
+                orig_activ,
+                orig_tokens,
+                orig_text,
+                generated_text,
+            ) in self.train_loader:
                 orig_activ = orig_activ.cuda(non_blocking=True).float()
-                curr_rows = self.train_loader.get_row_data(data_idx)
-                for i in range(len(curr_rows)):
-                    curr_rows[i] = [None] * 4 + curr_rows[i][4:]
 
-                self.npi_model.eval() # TODO: See if this is needed
-                pred_gpt2_outs, _ = self.get_pred_gpt2_outs(curr_rows, self.npi_model(orig_activ))
+                self.npi_model.eval()  # TODO: See if this is needed
+                pred_gpt2_outs, _ = self.get_pred_gpt2_outs(
+                    orig_tokens, orig_text, generated_text, self.npi_model(orig_activ)
+                )
 
                 g_class_loss_item = None
                 if epoch >= self.headstart:
-                    g_class_loss_item = self.train_generator_step(orig_activ, pred_gpt2_outs)
-                    self.train_batch_metadata["generate_class_losses"].append(g_class_loss_item)
+                    g_class_loss_item = self.train_generator_step(
+                        orig_activ, pred_gpt2_outs
+                    )
+                    self.train_batch_metadata["generate_class_losses"].append(
+                        g_class_loss_item
+                    )
 
                 npi_loss_item = self.train_npi_step(orig_activ, pred_gpt2_outs)
                 self.train_batch_metadata["npi_losses"].append(npi_loss_item)
@@ -373,12 +369,10 @@ class NPITrainer:
                         value.append(
                             (epoch, self.list_average(self.test_batch_metadata[key]))
                         )
-                out_path = f"{self.config.save_folder}{self.config.npi_type}_npi_train_summaries_epoch{epoch}.pkl"
+                out_path = f"{self.config.model_save_folder}{self.config.npi_type}_npi_train_summaries_epoch{epoch}.pkl"
                 with open(out_path, "wb") as outfile:
                     pkl.dump(self.train_metadata, outfile)
-                out_path = (
-                    f"{self.config.save_folder}npi_test_summaries_epoch{epoch}.pkl"
-                )
+                out_path = f"{self.config.model_save_folder}npi_test_summaries_epoch{epoch}.pkl"
                 with open(out_path, "wb") as outfile:
                     pkl.dump(self.test_metadata, outfile)
 

@@ -372,23 +372,14 @@ class GPT2LMWithNPI(GPT2LMHeadModel):
     def obtain_perturbed_GPT2WithNPI_outputs(
         self,
         npi_batched_perturbations,
-        perturbation_indices,
-        data_rows,
+        orig_tokens,
+        orig_text,
+        generated_text,
         tokenizer=None,
         max_seq_len=10,
         num_seq_iters=10,
         device=None,
     ):
-        # obtain perturbed GPT2WithNPI outputs: START
-        LANG_MODEL_ACTS_IND = 0
-        ACTS_CLASSIF_IND = 1
-        TARG_CLASSIF_IND = 2
-        LANG_MODEL_TYPE_IND = 3
-        META_DATA_IND = 4
-        ORIG_TEXT_IND = 5
-        PRED_TEXT_IND = 6
-        TARG_TEXT_INDEX = 7
-        GPT2_TEXT_INDEX = 8  # the text of what the gpt2 actually produced
         top_k = 1
         top_p = 0.9
         temperature = 1.0
@@ -402,11 +393,13 @@ class GPT2LMWithNPI(GPT2LMHeadModel):
 
         gpt2_perturbed_outs = []
         npi_resulting_text = []
+
         # iterating over batches
-        for j in range(b):
+        for j in range(b):  # TODO: Remove single processing for batch processing 
             # create input_ids
-            tokens = data_rows[j][META_DATA_IND]["orig_tokens"]
-            tokens = torch.tensor(tokens, dtype=torch.long)  # , device=device)
+            tokens = orig_tokens[j]
+            if not isinstance(tokens, torch.Tensor):
+                tokens = torch.tensor(tokens, dtype=torch.long)  # , device=device)
             tokens = tokens.unsqueeze(0).repeat(1, 1)
             tokens = tokens.cuda(device=device)
 
@@ -424,7 +417,7 @@ class GPT2LMWithNPI(GPT2LMHeadModel):
             # initializing big_array
             #   obtain flattened representation of the resulting perturbed forward pass in GPT-2
             big_array = []  # nxmx1
-            sent = data_rows[j][ORIG_TEXT_IND]
+            sent = orig_text[j]
             generated_sent = ""
             # iteratively producing big_array
             for i in range(num_seq_iters):
@@ -468,9 +461,9 @@ class GPT2LMWithNPI(GPT2LMHeadModel):
                 )
                 npi_resulting_text.append(
                     [
-                        data_rows[j][ORIG_TEXT_IND],
-                        data_rows[j][GPT2_TEXT_INDEX],
-                        data_rows[j][TARG_TEXT_INDEX],
+                        orig_text[j], # orig_text.txt
+                        generated_text[j], # generated_text.txt
+                        "target words", 
                         npi_sent_for_data_set,
                         sent,
                     ]
