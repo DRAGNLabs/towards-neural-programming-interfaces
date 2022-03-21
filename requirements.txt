@@ -5,6 +5,7 @@ numpy
 torch==1.5.1
 torchvision==0.6.1
 scipy
+webdataset
 
 # Dependencies to run test_npi.py
 six

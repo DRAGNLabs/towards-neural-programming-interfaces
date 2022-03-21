@@ -19,6 +19,7 @@ matplotlib = "*"
 scikit-learn = "*"
 spacy = "*"
 pandas = "*"
+webdataset = "*"
 
 [dev-packages]
 autopep8 = "*"
