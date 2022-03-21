@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "8cd205dda91cde15b2b34f8b1c92e442504722f54fcea0fbe2b4712328104574"
+            "sha256": "1b5c7dfc52ed241b82d445ed56b0faa24109cabc7f1c3b3dae13c346e52c32c3"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -121,10 +121,6 @@
             "version": "==2.0.6"
         },
         "dragn-npi": {
-            "editable": true,
-            "path": "."
-        },
-        "dragn.npi": {
             "editable": true,
             "path": "."
         },
@@ -339,6 +335,10 @@
                 "sha256:f4ef3b26229ff192032a12653d637313e1231d23e788b83a2f4a3d8e2bf2d031"
             ],
             "version": "==1.0.6"
+        },
+        "npi": {
+            "editable": true,
+            "path": "."
         },
         "numpy": {
             "hashes": [
@@ -753,7 +753,7 @@
                 "sha256:71d14489da58b60ce12fc3ecb823facc59a8b23cd1b58edb97175640350d3a62",
                 "sha256:75abf758717a92a8f53aa96953f0c245c8cedf8e1e4184903db3659b419d4c17"
             ],
-            "markers": "python_version >= '3.6' and python_version < '4.0'",
+            "markers": "python_version >= '3.6' and python_version < '4'",
             "version": "==5.2.1"
         },
         "spacy": {
@@ -903,7 +903,7 @@
                 "sha256:44ece4d53fb1706f667c9bd1c648f5469a2ec925fcf3a776667042d645472c14",
                 "sha256:aabaf16477806a5e1dd19aa41f8c2b7950dd3c746362d7e3223dbe6de6ac448e"
             ],
-            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4' and python_version < '4.0'",
+            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4' and python_version < '4'",
             "version": "==1.26.9"
         },
         "wasabi": {
@@ -915,11 +915,11 @@
         },
         "webdataset": {
             "hashes": [
-                "sha256:62683a82f1d8c9255c23c77f9149c2c223102244ca056fd35a37963cb6b41ac7",
-                "sha256:fea3fcae047224a9ec56a2413a9ac262965e3a73db7e516a55193eefaeee972c"
+                "sha256:a2cf638a767bcf23b0a83fec321aa18f576f2ca0a40f7803a7b839706ad1076e",
+                "sha256:ea41e983924bfc2678f2bea71208fb82b2116dbc1dcaf212f892e2748f925b5f"
             ],
             "index": "pypi",
-            "version": "==0.2.4"
+            "version": "==0.1.103"
         }
     },
     "develop": {

@@ -1,7 +1,7 @@
 from setuptools import find_packages, setup
 
 setup(
-    name='dragn.npi',
+    name='npi',
     packages=find_packages("src"),
     package_dir={'': 'src'},
     version='0.1.0',
