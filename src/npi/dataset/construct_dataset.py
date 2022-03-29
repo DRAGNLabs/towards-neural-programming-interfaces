@@ -12,7 +12,7 @@ from npi.utils import top_k_top_p_filtering
 
 
 class NPIDatasetConstructor:
-    def __init__(self, config: NPIConfig) -> None:
+    def __init__(self, config: NPIConfig, save_all_layers=True) -> None:
         self.save_file = config.dataset_file
         if "gpt2" in config.gpt_model:
             self.model = GPT2LMHeadModel.from_pretrained(config.gpt_model)
@@ -27,7 +27,11 @@ class NPIDatasetConstructor:
             self.model = self.model.cuda(device=self.device)
 
         self.window_size = config.window_size
-        self.perturb_indicies = config.perturbation_indices
+        self.perturb_indicies = (
+            [i for i in range(config.num_total_layers)]
+            if save_all_layers
+            else config.perturbation_indices
+        )
         self.num_iters = config.num_seq_iters
         self.max_iters = 5 * self.num_iters
         self.top_k = config.top_k
@@ -48,7 +52,7 @@ class NPIDatasetConstructor:
         )
         try:
             for index, (line, cls) in enumerate(pbar):
-                if index == data_len:  # Break if reached amount of data to generate.
+                if index >= data_len:  # Break if reached amount of data to generate.
                     break
 
                 # clean line to some extent

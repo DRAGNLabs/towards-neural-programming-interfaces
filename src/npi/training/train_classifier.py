@@ -31,7 +31,7 @@ from tqdm import tqdm
 from npi.dataset.npi_dataset import NPIDataSet
 
 from npi.modeling_neural_program_interfaces import *
-from npi.models.classifiers import Classifier  # from transformers import *
+from npi.models.classifiers import StyleClassifier  # from transformers import *
 
 def load_training_data(file_path, args, split_ratio=.25):  # with test-train split
     with open(file_path, 'rb') as datafile:
@@ -82,7 +82,7 @@ def train_classifier(args):
 
         # MODEL INITIALIZATION
         print("Creating Classifier Model", flush=True)
-        classifier_model = Classifier(train_data.n, train_data.m, 1).float()
+        classifier_model = StyleClassifier(train_data.n, train_data.m, 1).float()
         if args.continue_epoch:
             classifier_model.load_state_dict(torch.load(F"{save_file_path}Classifier_classification_network_epoch{args.continue_epoch}.bin",
                                                     map_location=torch.device('cpu')))

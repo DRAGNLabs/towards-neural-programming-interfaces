@@ -35,7 +35,7 @@ import torch.optim as optim
 from tqdm import tqdm
 from matplotlib import pyplot as plt
 from npi.dataset.npi_dataset import NPIDataLoader, NPIDataSet
-from npi.models.classifiers import Classifier, GenerationClassifier
+from npi.models.classifiers import StyleClassifier, Discriminator
 from npi.models.npi import GPT2LMWithNPI, NPINetwork
 
 from npi.transformers import GPT2Tokenizer
@@ -79,8 +79,8 @@ def load_training_data(file_path, pred_inds, split_ratio=.25):  # with test-trai
 
 
 class NPILoss(nn.Module):
-    def __init__(self, discrim_coeff, style_coeff, similarity_coeff, content_classifier_model=None,
-                 generation_classifier_model=None):
+    def __init__(self, discrim_coeff, style_coeff, similarity_coeff, style_class_model=None,
+                 discrim_model=None):
         super(NPILoss, self).__init__()
         self.gamma = discrim_coeff
         self.alpha = style_coeff
@@ -88,14 +88,14 @@ class NPILoss(nn.Module):
         self.mse = torch.nn.MSELoss()
         self.bce = torch.nn.BCELoss()
 
-        if generation_classifier_model is not None:
-            self.generation_classifier_model = generation_classifier_model
-        if content_classifier_model is not None:
-            self.content_classifier_model = content_classifier_model
+        if discrim_model is not None:
+            self.discrim_model = discrim_model
+        if style_class_model is not None:
+            self.style_class_model = style_class_model
         pass
 
     def forward(self, predicted_activs, true_activs, target_label,
-                content_classifier_model=None, generation_classifier_model=None, return_loss_data=False):
+                style_class_model=None, discrim_model=None, return_loss_data=False):
         """
         predicted_activs: torch tensor of shape (n, m, 1, b)
             b is the number of batches
@@ -110,8 +110,8 @@ class NPILoss(nn.Module):
 
         classifier_model: an updated classifier model (optional: use for adversarial training)
         """
-        generation_classifier_labels, _ = self.generation_classifier_model(predicted_activs)
-        content_classifier_labels = self.content_classifier_model(predicted_activs).unsqueeze(1).unsqueeze(3)
+        generation_classifier_labels, _ = self.discrim_model(predicted_activs)
+        content_classifier_labels = self.style_class_model(predicted_activs).unsqueeze(1).unsqueeze(3)
         aggregate_size = torch.cat((generation_classifier_labels, content_classifier_labels), dim=2).size()
         classifier_labels = torch.zeros(aggregate_size, dtype=torch.float64).cuda()
         classifier_labels[:, :, 0, :] = generation_classifier_labels[:, :, 0, :]
@@ -148,38 +148,38 @@ def load_models(args, input_activs_shape, input_targ_shape):
     npi_model.cuda()
 
     # Creating ContentClassifier Model
-    content_class_model = None
+    style_class_model = None
     if content_class_type == 'adversarial':
         raise NotImplementedError("Content classifier should be pre-trained")
         print("INITIALIZING NEW CONTENT CLASSIFIER NETWORK")
-        content_class_model = ContentClassifier(input_activs_shape, input_targ_shape).float()
-    elif content_class_type == 'pretrained' and args.content_classifier_path is not None:
+        style_class_model = ContentClassifier(input_activs_shape, input_targ_shape).float()
+    elif content_class_type == 'pretrained' and args.style_classifier_path is not None:
         print("LOADING PRE-TRAINED CONTENT CLASSIFIER NETWORK")
-        content_class_model: Classifier = Classifier()
-        content_class_model.load_state_dict(torch.load(args.content_classifier_path, map_location=torch.device('cpu')))
-        content_class_model.eval()
+        style_class_model: StyleClassifier = StyleClassifier()
+        style_class_model.load_state_dict(torch.load(args.style_classifier_path, map_location=torch.device('cpu')))
+        style_class_model.eval()
     else:
         raise NotImplementedError("Requested model {} has not been implemented.".format(content_class_type))
-    content_class_model.cuda()
+    style_class_model.cuda()
 
     # Creating GenerationClassifier Model
-    generate_class_model = None
+    discrim_model = None
     if generate_class_type == 'adversarial':
-        generate_class_model = GenerationClassifier(input_activs_shape, input_targ_shape).float()
-    elif generate_class_type == 'pretrained' and args.generation_classifier_path is not None:
+        discrim_model = Discriminator(input_activs_shape, input_targ_shape).float()
+    elif generate_class_type == 'pretrained' and args.discrim_model_path is not None:
         raise NotImplementedError("Generation classifier should be trained adversarially in tandem with NPI")
-        generate_class_model = torch.load(args.generation_classifier_path)
-        generate_class_model.eval()
+        discrim_model = torch.load(args.discrim_model_path)
+        discrim_model.eval()
     else:
         raise NotImplementedError("Requested model {} has not been implemented.".format(generate_class_type))
     
-    if args.generation_classifier_path is not None:
-        generate_class_model.load_state_dict(torch.load(args.generation_classifier_path, map_location="cpu"))
-        generate_class_model.eval()
+    if args.discrim_model_path is not None:
+        discrim_model.load_state_dict(torch.load(args.discrim_model_path, map_location="cpu"))
+        discrim_model.eval()
 
-    generate_class_model.cuda()
+    discrim_model.cuda()
 
-    return npi_model, content_class_model, generate_class_model
+    return npi_model, style_class_model, discrim_model
 
 
 def make_classifier_plots(classifier_label, epoch, save_file_path, epoch_losses, false_test_losses, true_test_losses,
@@ -388,7 +388,7 @@ def train_adversarial_NPI(args):  # train NPI and Classifiers in-tandem
         input_activs_shape = act0.size()
         input_targ_shape = (1, 1)  # targ0.size() <-- None
 
-        npi_model, content_class_model, generate_class_model = load_models(args, input_activs_shape, input_targ_shape)
+        npi_model, style_class_model, discrim_model = load_models(args, input_activs_shape, input_targ_shape)
 
         print("Initializing GPT2WithNPI model with tokenizer -- not being placed on GPU until npi loss evaluation")
         gpt2_with_npi = GPT2LMWithNPI.from_pretrained(
@@ -399,20 +399,20 @@ def train_adversarial_NPI(args):  # train NPI and Classifiers in-tandem
 
         # CREATE LOSS FUNCTION
         print("Initializing npi loss func")
-        npi_objective = NPILoss(discrim_coeff, style_coeff, similarity_coeff, content_class_model, generate_class_model)
+        npi_objective = NPILoss(discrim_coeff, style_coeff, similarity_coeff, style_class_model, discrim_model)
         npi_optimizer = optim.Adam(npi_model.parameters(), lr=args.npi_lr)
 
         print("Initializing classifier losses")
         # content_class_objective = torch.nn.BCELoss()
-        # content_class_optimizer = optim.Adam(content_class_model.parameters(), lr=args.disc_lr)
-        generate_class_objective = torch.nn.BCELoss()
-        generate_class_optimizer = optim.Adam(generate_class_model.parameters(), lr=args.disc_lr)
+        # content_class_optimizer = optim.Adam(style_class_model.parameters(), lr=args.disc_lr)
+        discrim_objective = torch.nn.BCELoss()
+        discrim_model_optimizer = optim.Adam(discrim_model.parameters(), lr=args.disc_lr)
 
         mse_loss = torch.nn.MSELoss()
         bce_loss = torch.nn.BCELoss()
 
         print("Setting Content Classifier and GPT-2 Parameters to requires_grad=False")
-        for p in content_class_model.parameters():
+        for p in style_class_model.parameters():
             p.requires_grad = False
         for p in gpt2_with_npi.parameters():
             p.requires_grad = False
@@ -495,14 +495,14 @@ def train_adversarial_NPI(args):  # train NPI and Classifiers in-tandem
 
                         # UPDATE CLASSIFIER WEIGHTS
 
-                        generate_class_model.train()
+                        discrim_model.train()
 
                         for p in npi_model.parameters():
                             p.requires_grad = False
-                        for p in generate_class_model.parameters():
+                        for p in discrim_model.parameters():
                             p.requires_grad = True
 
-                        generate_class_model.zero_grad()  # generate_class_optimizer.zero_grad()
+                        discrim_model.zero_grad()  # discrim_model_optimizer.zero_grad()
 
                         # labels 
                         y_real_GPT2 = torch.zeros(functional_batch_size).float().cuda()  # 0 = real GPT2
@@ -510,17 +510,17 @@ def train_adversarial_NPI(args):  # train NPI and Classifiers in-tandem
                         # y_real_GPT2, y_fake_GPT2 = Variable(y_real_GPT2), Variable(y_fake_GPT2)
 
                         # Now predict and get loss
-                        real_gen_pred = generate_class_model(orig_activ)
-                        fake_gen_pred = generate_class_model(pred_gpt2_outs.detach())
+                        real_gen_pred = discrim_model(orig_activ)
+                        fake_gen_pred = discrim_model(pred_gpt2_outs.detach())
                         # loss
-                        real_loss = generate_class_objective(real_gen_pred.squeeze(), y_real_GPT2.squeeze())
-                        fake_loss = generate_class_objective(fake_gen_pred.squeeze(), y_fake_GPT2.squeeze())
+                        real_loss = discrim_objective(real_gen_pred.squeeze(), y_real_GPT2.squeeze())
+                        fake_loss = discrim_objective(fake_gen_pred.squeeze(), y_fake_GPT2.squeeze())
                         g_class_loss = LOSS_BOOSTING_COEFF * (real_loss + fake_loss)
                         # record and .backward()
                         g_class_loss_item = g_class_loss.item()
                         generate_class_batch_losses.append(g_class_loss_item)
                         g_class_loss.backward()
-                        generate_class_optimizer.step()
+                        discrim_model_optimizer.step()
 
                         # UPDATE NPI WEIGHTS
 
@@ -528,12 +528,12 @@ def train_adversarial_NPI(args):  # train NPI and Classifiers in-tandem
 
                     for p in npi_model.parameters():
                         p.requires_grad = True
-                    for p in generate_class_model.parameters():
+                    for p in discrim_model.parameters():
                         p.requires_grad = False
 
                     npi_model.zero_grad()  # npi_optimizer.zero_grad()
 
-                    npi_objective.generation_classifier_model = generate_class_model
+                    npi_objective.discrim_model = discrim_model
                     gpt2_with_npi.npi_model = npi_model
 
                     # labels 
@@ -545,11 +545,11 @@ def train_adversarial_NPI(args):  # train NPI and Classifiers in-tandem
                     resulting_gpt2_outs = pred_gpt2_outs
 
                     # get classifications and loss 
-                    content_classification = content_class_model(resulting_gpt2_outs)
-                    gen_classification = generate_class_model(resulting_gpt2_outs)
+                    style_classification = style_class_model(resulting_gpt2_outs)
+                    discrim_classification = discrim_model(resulting_gpt2_outs)
                     # loss
-                    discrim_loss = bce_loss(gen_classification.squeeze(), y_real_GPT2.squeeze())
-                    style_loss = bce_loss(content_classification.squeeze(), y_word.squeeze())
+                    discrim_loss = bce_loss(discrim_classification.squeeze(), y_real_GPT2.squeeze())
+                    style_loss = bce_loss(style_classification.squeeze(), y_word.squeeze())
                     similarity_loss = mse_loss(resulting_gpt2_outs, orig_activ)
                     npi_loss = LOSS_BOOSTING_COEFF * (
                             discrim_coeff * discrim_loss + style_coeff * style_loss + similarity_coeff * similarity_loss)
@@ -584,7 +584,7 @@ def train_adversarial_NPI(args):  # train NPI and Classifiers in-tandem
                             {"style loss": style_loss.cpu().item(),
                              "similarity loss": similarity_loss.cpu().item(),
                              "discrim loss": discrim_loss.cpu().item(),
-                             "content classifier classifications": content_classification.squeeze().data.cpu().numpy(),
+                             "content classifier classifications": style_classification.squeeze().data.cpu().numpy(),
                              "test_samples": training_text
                              }
 
@@ -645,12 +645,12 @@ def train_adversarial_NPI(args):  # train NPI and Classifiers in-tandem
                                                                                                        num_seq_iters=args.num_seq_iters,
                                                                                                        device=args.device)
 
-                        generate_class_model.eval()
-                        test_real_gen_pred = generate_class_model(test_x)
-                        test_fake_gen_pred = generate_class_model(test_gpt2_outs)
-                        test_real_gen_loss = generate_class_objective(test_real_gen_pred.squeeze(),
+                        discrim_model.eval()
+                        test_real_gen_pred = discrim_model(test_x)
+                        test_fake_gen_pred = discrim_model(test_gpt2_outs)
+                        test_real_gen_loss = discrim_objective(test_real_gen_pred.squeeze(),
                                                                       y_real_GPT2.squeeze())
-                        test_fake_gen_loss = generate_class_objective(test_fake_gen_pred.squeeze(),
+                        test_fake_gen_loss = discrim_objective(test_fake_gen_pred.squeeze(),
                                                                       y_fake_GPT2.squeeze())
                         test_g_class_loss = LOSS_BOOSTING_COEFF * (test_real_gen_loss + test_fake_gen_loss)
                         # append losses and get accuracy 
@@ -664,17 +664,17 @@ def train_adversarial_NPI(args):  # train NPI and Classifiers in-tandem
                         generate_class_false_test_batch_accuracies.append(test_fake_gen_acc)
 
                         npi_model.eval()
-                        test_content_classification = content_class_model(test_gpt2_outs)
-                        test_gen_classification = test_fake_gen_pred
-                        test_discrim_loss = bce_loss(test_gen_classification.squeeze(), y_real_GPT2.squeeze())
-                        test_style_loss = bce_loss(test_content_classification.squeeze(), y_word.squeeze())
+                        test_style_classification = style_class_model(test_gpt2_outs)
+                        test_discrim_classification = test_fake_gen_pred
+                        test_discrim_loss = bce_loss(test_discrim_classification.squeeze(), y_real_GPT2.squeeze())
+                        test_style_loss = bce_loss(test_style_classification.squeeze(), y_word.squeeze())
                         test_similarity_loss = mse_loss(test_gpt2_outs, test_x)
                         test_npi_loss = LOSS_BOOSTING_COEFF * (
                                 discrim_coeff * test_discrim_loss + style_coeff * test_style_loss + similarity_coeff * test_similarity_loss)
                         # append losses and get accuracy 
                         npi_test_batch_losses.append(test_npi_loss.item())
                         # Don't forget the accuracy number from the classifier 
-                        acc_from_content_class = my_accuracy(test_content_classification.squeeze(), y_word.squeeze())
+                        acc_from_content_class = my_accuracy(test_style_classification.squeeze(), y_word.squeeze())
                         content_class_false_test_batch_accuracies.append(acc_from_content_class)
 
                         if file_num == len(train_file_names) - 1 and test_batch == 0:
@@ -688,7 +688,7 @@ def train_adversarial_NPI(args):  # train NPI and Classifiers in-tandem
                                 {"style loss": test_style_loss.cpu().item(),
                                  "similarity loss": test_similarity_loss.cpu().item(),
                                  "discrim loss": test_discrim_loss.cpu().item(),
-                                 "content classifier classifications": test_content_classification.squeeze().data.cpu().numpy(),
+                                 "content classifier classifications": test_style_classification.squeeze().data.cpu().numpy(),
                                  "text samples": test_text
                                  }
 
@@ -772,7 +772,7 @@ def train_adversarial_NPI(args):  # train NPI and Classifiers in-tandem
 
                 print("Saving GenerationClassifier Model")
                 out_path = save_file_path + "{}_network_epoch{}.bin".format('GenerationClassifier', epoch)
-                torch.save(generate_class_model.state_dict(), out_path)
+                torch.save(discrim_model.state_dict(), out_path)
 
                 print("Saving GenerationClassifier Loss Summary")
                 out_path = None
@@ -957,7 +957,7 @@ def train_adversarial_NPI(args):  # train NPI and Classifiers in-tandem
         print("Epoch loss history == ", npi_epoch_losses)
         gc.collect()
         epoch_losses_cleaned = [x for x in npi_epoch_losses if x is not np.nan]
-        return npi_model, content_class_model, generate_class_model, np.mean(epoch_losses_cleaned)
+        return npi_model, style_class_model, discrim_model, np.mean(epoch_losses_cleaned)
 
     except Exception as e:
         print(e)
@@ -1125,21 +1125,21 @@ if __name__ == "__main__":
             try:
                 torch.cuda.empty_cache()
                 # Main event:
-                npi_model, content_classifier_model, generation_classifier_model, avg_epoch_loss = train_adversarial_NPI(
+                npi_model, style_class_model, discrim_model, avg_epoch_loss = train_adversarial_NPI(
                     args)
 
                 out_path = args.save_file_path + "{}_npi_vfinal.bin".format(args.npi_type)
                 torch.save(npi_model.state_dict(), out_path)
                 out_path = args.save_file_path + "content_classifier_vfinal.bin"
-                torch.save(content_classifier_model.state_dict(), out_path)
+                torch.save(style_class_model.state_dict(), out_path)
                 out_path = args.save_file_path + "generation_classifier_vfinal.bin"
-                torch.save(generation_classifier_model.state_dict(), out_path)
+                torch.save(discrim_model.state_dict(), out_path)
 
                 print("Avg epoch loss == ", avg_epoch_loss)
 
                 del npi_model
-                del content_classifier_model
-                del generation_classifier_model
+                del style_class_model
+                del discrim_model
 
             except:
                 raise

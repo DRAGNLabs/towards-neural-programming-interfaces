@@ -7,12 +7,15 @@
 #                        2020                         #
 
 import argparse
+from cProfile import label
 import pickle as pkl
 import os
 
 import torch
 from torch.nn import functional as F
 from typing import List
+
+from tqdm import tqdm
 
 # give path to remaining imports
 #import sys
@@ -63,11 +66,8 @@ def load_input_file(file: str, max_lines: int, test_avoidance: bool, targets: st
     print(F"Lines added: {len(in_texts_list)}")
     return in_texts_list
 
-def generate_text(in_text, lm_model, tokenizer, target_label=[1],
-                  num_generation_iters=100, max_seq_len=10, num_samples=1,
-                  temperature=1, top_k=1, top_p=0.0):
-    print("Generating text ordinarily", flush=True)
-
+def generate_text(in_text, lm_model, tokenizer, num_generation_iters=100, 
+                    max_seq_len=10, num_samples=1,top_k=1, top_p=0.0):
     tokens = tokenizer.encode(in_text)
     # process tokens
     tokens = tokens[-max_seq_len:]
@@ -99,8 +99,7 @@ def generate_text(in_text, lm_model, tokenizer, target_label=[1],
 
         tokens = torch.cat((tokens, next_token.unsqueeze(0)), dim=1).cuda()
 
-    for I in range(num_generation_iters):
-        print(".", flush=True, end=" ")
+    for _ in tqdm(range(num_generation_iters), leave=False, desc="Model: GPT 2 Vanilla"):
 
         hidden_states, presents = lm_model(input_ids=tokens)
 
@@ -123,9 +122,8 @@ def generate_text(in_text, lm_model, tokenizer, target_label=[1],
 
 
 def generate_text_with_NPI(in_text, lm_model, vanilla_lm_model, tokenizer, perturbation_indices, npi_model,
-                           target_label=[1], num_generation_iters=100, num_seq_iters=10, max_seq_len=10, num_samples=1,
+                           num_generation_iters=100, num_seq_iters=10, max_seq_len=10, num_samples=1,
                            temperature=1, top_k=1, top_p=0.0):
-    print("Generating text with NPI perturbations", flush=True)
 
     lm_model.initialize_npi(perturbation_indices)
 
@@ -136,6 +134,7 @@ def generate_text_with_NPI(in_text, lm_model, vanilla_lm_model, tokenizer, pertu
     tokens = tokens.unsqueeze(0).repeat(num_samples, 1)
     tokens = tokens.cuda()
     lm_model = lm_model.cuda()
+    vanilla_lm_model = vanilla_lm_model.cuda()
 
     vanilla_lm_model.transformer.output_hidden_states = False
 
@@ -163,9 +162,8 @@ def generate_text_with_NPI(in_text, lm_model, vanilla_lm_model, tokenizer, pertu
 
     vanilla_lm_model.transformer.output_hidden_states = True
 
+    loop = tqdm(total=num_generation_iters - len(out_tokens), leave=False, desc = "Model: GPT2 with NPI")
     while len(out_tokens) < num_generation_iters:
-
-        print(".", flush=True, end=' ')
 
         big_array = []
 
@@ -202,6 +200,7 @@ def generate_text_with_NPI(in_text, lm_model, vanilla_lm_model, tokenizer, pertu
             next_token = torch.multinomial(F.softmax(filtered_logits, dim=-1), num_samples=num_samples)
             next_token_list = next_token.tolist()
             out_tokens = out_tokens + next_token_list  # append to product here
+            loop.update()
             # next_word = tokenizer.decode(next_token_list)
             # sent = sent + " " + next_word # we just update this so sent remains accurate for dict
             # generated_sent = generated_sent + next_word + " "
@@ -212,8 +211,7 @@ def generate_text_with_NPI(in_text, lm_model, vanilla_lm_model, tokenizer, pertu
         tokens = tokens[:, -max_seq_len:]
 
         # Now repeat process again for another chunk of num_seq_iters until we have enough text generated
-
-    print("", flush=True)
+    loop.close()
 
     return tokenizer.decode(out_tokens)
 

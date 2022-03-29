@@ -1,6 +1,6 @@
 import torch.nn as nn
 
-class Classifier(nn.Module):  # classifies NPI outputs
+class StyleClassifier(nn.Module):  # classifies NPI outputs
     def __init__(self, n=200, m=768, k=1):
         """
         input_activs_shape: tuple of (b, n, m, 1)
@@ -9,7 +9,7 @@ class Classifier(nn.Module):  # classifies NPI outputs
         target_label: tuple of (b, 1, m, 1)
             the desired label for the predicted activations, as passed into the NPI network
         """
-        super(Classifier, self).__init__()
+        super(StyleClassifier, self).__init__()
 
         print("Classifier INIT", flush=True)
         self.n = n
@@ -38,7 +38,7 @@ class Classifier(nn.Module):  # classifies NPI outputs
         return self.model(x.view(-1, self.n * self.m * self.k))
 
 
-class GenerationClassifier(nn.Module):  # classifies NPI outputs
+class Discriminator(nn.Module):  # classifies NPI outputs
     def __init__(self, input_activs_shape, input_targ_shape):
         """
         input_activs_shape: tuple of (n, m, 1)
@@ -46,7 +46,7 @@ class GenerationClassifier(nn.Module):  # classifies NPI outputs
         target_label: tuple of (b, 1, m, 1)
             the desired label for the predicted activations, as passed into the NPI network
         """
-        super(GenerationClassifier, self).__init__()
+        super(Discriminator, self).__init__()
 
         print("GenerationClassifier INIT")
         self.n = input_activs_shape[0]

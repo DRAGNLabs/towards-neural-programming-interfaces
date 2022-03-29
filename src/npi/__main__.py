@@ -21,7 +21,7 @@ def train(args):
     config = NPIConfig(device, model_save_folder="../models/npi_models/", dataset_folder="../data/processed", npi_name="politics")
     models = NPITrainingModels(
         config,
-        content_classifier_path="../notebooks/politics/classifiers/layers_5_11/Classifier_classification_network_epoch0.bin",
+        style_classifier_path="../notebooks/politics/classifiers/layers_5_11/Classifier_classification_network_epoch0.bin",
     )
     if model == "npi":
         trainer = NPITrainer(config, batch_size=batch_size, headstart=headstart)

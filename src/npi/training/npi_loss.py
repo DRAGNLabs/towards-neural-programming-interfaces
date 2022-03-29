@@ -8,8 +8,8 @@ class NPILoss(nn.Module):
         style_coeff,
         similarity_coeff,
         loss_boosting_coeff,
-        content_classifier_model=None,
-        generation_classifier_model=None,
+        style_class_model=None,
+        discrim_model=None,
     ):
         super(NPILoss, self).__init__()
         self.gamma = discrim_coeff
@@ -19,10 +19,10 @@ class NPILoss(nn.Module):
         self.mse = nn.MSELoss()
         self.bce = nn.BCELoss()
 
-        if generation_classifier_model is not None:
-            self.generation_classifier_model = generation_classifier_model
-        if content_classifier_model is not None:
-            self.content_classifier_model = content_classifier_model
+        if discrim_model is not None:
+            self.discrim_model = discrim_model
+        if style_class_model is not None:
+            self.style_class_model = style_class_model
         pass
 
     def forward(
@@ -46,11 +46,11 @@ class NPILoss(nn.Module):
 
         classifier_model: an updated classifier model (optional: use for adversarial training)
         """
-        generation_classifier_labels, _ = self.generation_classifier_model(
+        generation_classifier_labels, _ = self.discrim_model(
             predicted_activs
         )
         content_classifier_labels = (
-            self.content_classifier_model(predicted_activs).unsqueeze(1).unsqueeze(3)
+            self.style_class_model(predicted_activs).unsqueeze(1).unsqueeze(3)
         )
         aggregate_size = torch.cat(
             (generation_classifier_labels, content_classifier_labels), dim=2

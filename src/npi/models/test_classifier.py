@@ -16,7 +16,7 @@ import numpy as np
 import torch
 
 from npi.dataset.npi_dataset import extract_needed_layers
-from npi.models.classifiers import Classifier
+from npi.models.classifiers import StyleClassifier
 
 def test_classifier(args):
     EPOCH_NUM_LIST = [int(pi) for pi in args.test_epochs.split(',')]
@@ -35,7 +35,7 @@ def test_classifier(args):
         # Load classifier
         print("Creating Classifier Model", flush=True)
         # TODO when modifiying PRED_IND, this may need to change
-        classifier_model = Classifier().float()
+        classifier_model = StyleClassifier().float()
 
         #   We load the model from the CPU just in case it was trained on a different GPU than the one we are using
         classifier_model.load_state_dict(torch.load(F"{file_path}Classifier_classification_network_epoch{epoch_num}.bin",

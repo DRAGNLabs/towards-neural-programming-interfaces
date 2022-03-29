@@ -22,11 +22,17 @@ META_DATA_INDEX = 4
 
 
 class NPIDatasetLoader:
-    def __init__(self, config: NPIConfig, split_ratio=0.25) -> None:
+    def __init__(self, config: NPIConfig, split_ratio=0.25, target="npi") -> None:
         self.config = config
         with tarfile.open(config.dataset_file, mode="r") as f:
             self.total = len(f.getmembers()) // 7
         self.split = int(self.total * (1 - split_ratio))
+        if target == "npi":
+            items = "orig_activ.npy orig_tokens.pyd orig.txt generated.txt"
+        elif target == "style":
+            items = "orig_activ.npy orig_label.npy generated.txt"
+        else:
+            raise NotImplementedError("Only target='npi' and target='style' is supported")
         dataset_decoder = (
             lambda key, data: extract_needed_layers(
                 wds.autodecode.basichandlers(key, data),
@@ -45,10 +51,10 @@ class NPIDatasetLoader:
             .slice(0, self.split)
             .decode(
                 post=[dataset_decoder],
-                only=["orig_activ.npy", "orig_tokens.pyd", "orig.txt", "generated.txt"],
+                only=items,
             )
-            .to_tuple("orig_activ.npy orig_tokens.pyd orig.txt generated.txt")
-            .batched(1000)
+            .to_tuple(items)
+            .batched(10)
         )
 
         self.test_dataset: IterableDataset = (
@@ -56,10 +62,10 @@ class NPIDatasetLoader:
             .slice(self.split, self.total)
             .decode(
                 post=[dataset_decoder],
-                only=["orig_activ.npy", "orig_tokens.pyd", "orig.txt", "generated.txt"],
+                only=items,
             )
-            .to_tuple("orig_activ.npy orig_tokens.pyd orig.txt generated.txt")
-            .batched(1000)
+            .to_tuple(items)
+            .batched(10)
         )
 
     def load_train_and_test_dataloaders(self, batch_size=5):
@@ -76,11 +82,11 @@ class NPIDatasetLoader:
             # ),
             wds.WebLoader(self.dataset, batch_size=None)
             .unbatched()
-            .shuffle(1000)
+            # .shuffle(1000) TODO: See best way to enable shuffling
             .batched(batch_size, partial=False),
             wds.WebLoader(self.test_dataset, batch_size=None)
             .unbatched()
-            .shuffle(1000)
+            # .shuffle(1000)
             .batched(batch_size, partial=False),
             (self.split - 1) // batch_size,
             (self.total - self.split) // batch_size,

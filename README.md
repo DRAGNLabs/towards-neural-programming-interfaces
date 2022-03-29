@@ -2,6 +2,13 @@
 
 This repository is the official implementation of "Towards Neural Programming Interfaces", published and presented in NeurIPS 2020 proceedings. See https://arxiv.org/abs/2012.05983 for preprint.
 
+## TODO:
+
+* Generate data correctly for sentiment (get the tokens from the sentences and loop through them?)
+* Figure out using N-hot encoding for training the NPI
+* Using different layers for pertubations for multi-classification
+* For multiclassification, we need to update the style classifier to support that.
+
 ## Dependencies
 
 ### Pipenv

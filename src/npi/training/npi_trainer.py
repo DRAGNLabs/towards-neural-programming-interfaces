@@ -65,7 +65,7 @@ class NPITrainer:
         self.npi_objective = NPILoss(
             discrim_coeff, style_coeff, similarity_coeff, loss_boosting_coeff
         )
-        self.generate_class_objective = torch.nn.BCELoss()
+        self.discrim_objective = torch.nn.BCELoss()
         self.bce_loss = torch.nn.BCELoss()
         self.mse_loss = torch.nn.MSELoss()
         self.list_average = lambda x: sum(x) / float(len(x))
@@ -73,34 +73,34 @@ class NPITrainer:
         # Initialize data structures to store training results
         self.train_metadata = {
             "npi_losses": [],
-            "generate_class_losses": [],
-            "generate_class_accuracies": [],
+            "discrim_class_losses": [],
+            "discrim_class_accuracies": [],
         }
         self.train_batch_metadata = deepcopy(self.train_metadata)
 
         self.test_metadata = {
             "npi_test_losses": [],
-            "content_class_test_losses": [],
-            "generate_class_tests_losses": [],
-            "generate_false_class_test_losses": [],
-            "content_class_test_accuracies": [],
-            "generate_class_test_accuracies": [],
-            "generate_class_false_test_accuracies": [],
+            "style_class_test_losses": [],
+            "discrim_class_tests_losses": [],
+            "discrim_false_class_test_losses": [],
+            "style_class_test_accuracies": [],
+            "discrim_class_test_accuracies": [],
+            "discrim_class_false_test_accuracies": [],
         }
         self.test_batch_metadata = deepcopy(self.test_metadata)
 
         # Seed torch
         torch.manual_seed(1)
 
-    def train_generator_step(self, orig_activ, pred_gpt2_outs):
-        self.generate_class_model.train()
+    def train_discrim_step(self, orig_activ, pred_gpt2_outs):
+        self.discrim_model.train()
 
         for p in self.npi_model.parameters():
             p.requires_grad = False
-        for p in self.generate_class_model.parameters():
+        for p in self.discrim_model.parameters():
             p.requires_grad = True
 
-        self.generate_class_model.zero_grad()  # generate_class_optimizer.zero_grad()
+        self.discrim_model.zero_grad()  # discrim_model_optimizer.zero_grad()
 
         # labels
         y_real_GPT2 = torch.zeros(self.batch_size).float().cuda()  # 0 = real GPT2
@@ -108,19 +108,19 @@ class NPITrainer:
         # y_real_GPT2, y_fake_GPT2 = Variable(y_real_GPT2), Variable(y_fake_GPT2)
 
         # Now predict and get loss
-        real_gen_pred = self.generate_class_model(orig_activ)
-        fake_gen_pred = self.generate_class_model(pred_gpt2_outs.detach())
+        real_gen_pred = self.discrim_model(orig_activ)
+        fake_gen_pred = self.discrim_model(pred_gpt2_outs.detach())
         # loss
-        real_loss = self.generate_class_objective(
+        real_loss = self.discrim_objective(
             real_gen_pred.squeeze(), y_real_GPT2.squeeze()
         )
-        fake_loss = self.generate_class_objective(
+        fake_loss = self.discrim_objective(
             fake_gen_pred.squeeze(), y_fake_GPT2.squeeze()
         )
         g_class_loss = self.loss_boosting_coeff * (real_loss + fake_loss)
 
         g_class_loss.backward()
-        self.generate_class_optimizer.step()
+        self.discrim_model_optimizer.step()
 
         return g_class_loss.item()
 
@@ -129,12 +129,12 @@ class NPITrainer:
 
         for p in self.npi_model.parameters():
             p.requires_grad = True
-        for p in self.generate_class_model.parameters():
+        for p in self.discrim_model.parameters():
             p.requires_grad = False
 
         self.npi_model.zero_grad()  # npi_optimizer.zero_grad()
 
-        self.npi_objective.generation_classifier_model = self.generate_class_model
+        self.npi_objective.discrim_model = self.discrim_model
 
         # labels
         y_word = (
@@ -143,13 +143,13 @@ class NPITrainer:
         y_real_GPT2 = torch.zeros(self.batch_size).float().cuda()
 
         # get classifications and loss
-        content_classification = self.content_class_model(pred_gpt2_outs)
-        gen_classification = self.generate_class_model(pred_gpt2_outs)
+        style_classification = self.style_class_model(pred_gpt2_outs)
+        discrim_classification = self.discrim_model(pred_gpt2_outs)
         # loss
         discrim_loss = self.bce_loss(
-            gen_classification.squeeze(), y_real_GPT2.squeeze()
+            discrim_classification.squeeze(), y_real_GPT2.squeeze()
         )
-        style_loss = self.bce_loss(content_classification.squeeze(), y_word.squeeze())
+        style_loss = self.bce_loss(style_classification.squeeze(), y_word.squeeze())
         similarity_loss = self.mse_loss(pred_gpt2_outs, orig_activ)
         npi_loss = self.loss_boosting_coeff * (
             self.discrim_coeff * discrim_loss
@@ -178,7 +178,7 @@ class NPITrainer:
         # print("Testing: START")
         # perform npi_model testing
         self.npi_model.eval()
-        self.generate_class_model.eval()
+        self.discrim_model.eval()
 
         for orig_activ, orig_tokens, orig_text, generated_text in test_loader:
 
@@ -193,12 +193,12 @@ class NPITrainer:
             test_deltas = self.npi_model(orig_activ)
             test_gpt2_outs, test_text = self.get_pred_gpt2_outs(orig_tokens, orig_text, generated_text, test_deltas)
 
-            test_real_gen_pred = self.generate_class_model(orig_activ)
-            test_fake_gen_pred = self.generate_class_model(test_gpt2_outs)
-            test_real_gen_loss = self.generate_class_objective(
+            test_real_gen_pred = self.discrim_model(orig_activ)
+            test_fake_gen_pred = self.discrim_model(test_gpt2_outs)
+            test_real_gen_loss = self.discrim_objective(
                 test_real_gen_pred.squeeze(), y_real_GPT2.squeeze()
             )
-            test_fake_gen_loss = self.generate_class_objective(
+            test_fake_gen_loss = self.discrim_objective(
                 test_fake_gen_pred.squeeze(), y_fake_GPT2.squeeze()
             )
             test_g_class_loss = self.loss_boosting_coeff * (
@@ -206,10 +206,10 @@ class NPITrainer:
             )
 
             # append losses and get accuracy
-            self.test_batch_metadata["generate_class_tests_losses"].append(
+            self.test_batch_metadata["discrim_class_tests_losses"].append(
                 test_g_class_loss.item()
             )  # note this is the sum of real and fake loss
-            self.test_batch_metadata["generate_false_class_test_losses"].append(
+            self.test_batch_metadata["discrim_false_class_test_losses"].append(
                 test_fake_gen_loss.item()
             )
             test_real_gen_acc = accuracy_by_nate(
@@ -219,20 +219,20 @@ class NPITrainer:
                 test_fake_gen_pred.squeeze(), y_fake_GPT2.squeeze()
             )
             test_avg_gen_acc = (test_real_gen_acc + test_fake_gen_acc) / 2.0
-            self.test_batch_metadata["generate_class_test_accuracies"].append(
+            self.test_batch_metadata["discrim_class_test_accuracies"].append(
                 test_avg_gen_acc
             )
-            self.test_batch_metadata["generate_class_false_test_accuracies"].append(
+            self.test_batch_metadata["discrim_class_false_test_accuracies"].append(
                 test_fake_gen_acc
             )
 
-            test_content_classification = self.content_class_model(test_gpt2_outs)
-            test_gen_classification = test_fake_gen_pred
+            test_style_classification = self.style_class_model(test_gpt2_outs)
+            test_discrim_classification = test_fake_gen_pred
             test_discrim_loss = self.bce_loss(
-                test_gen_classification.squeeze(), y_real_GPT2.squeeze()
+                test_discrim_classification.squeeze(), y_real_GPT2.squeeze()
             )
             test_style_loss = self.bce_loss(
-                test_content_classification.squeeze(), y_word.squeeze()
+                test_style_classification.squeeze(), y_word.squeeze()
             )
             test_similarity_loss = self.mse_loss(test_gpt2_outs, orig_activ)
             test_npi_loss = self.loss_boosting_coeff * (
@@ -243,11 +243,11 @@ class NPITrainer:
             # append losses and get accuracy
             self.test_batch_metadata["npi_test_losses"].append(test_npi_loss.item())
             # Don't forget the accuracy number from the classifier
-            acc_from_content_class = accuracy_by_nate(
-                test_content_classification.squeeze(), y_word.squeeze()
+            acc_from_style_class = accuracy_by_nate(
+                test_style_classification.squeeze(), y_word.squeeze()
             )
-            self.test_batch_metadata["content_class_test_accuracies"].append(
-                acc_from_content_class
+            self.test_batch_metadata["style_class_test_accuracies"].append(
+                acc_from_style_class
             )
 
     def visualize_training(self):
@@ -260,16 +260,16 @@ class NPITrainer:
         make_training_plots(
             "Discriminator average loss per epoch",
             self.config.model_save_folder,
-            self.train_metadata["generate_class_losses"],
-            self.test_metadata["generate_class_tests_losses"],
-            self.test_metadata["generate_false_class_test_losses"],
+            self.train_metadata["discrim_class_losses"],
+            self.test_metadata["discrim_class_tests_losses"],
+            self.test_metadata["discrim_false_class_test_losses"],
         )
         make_training_plots(
             "Discriminator average accuracy per epoch",
             self.config.model_save_folder,
-            self.train_metadata["generate_class_accuracies"],
-            self.test_metadata["generate_class_test_accuracies"],
-            self.test_metadata["generate_class_false_test_accuracies"],
+            self.train_metadata["discrim_class_accuracies"],
+            self.test_metadata["discrim_class_test_accuracies"],
+            self.test_metadata["discrim_class_false_test_accuracies"],
         )
 
     def train_adversarial_npi(
@@ -282,8 +282,8 @@ class NPITrainer:
         # Initialize model
         (
             self.npi_model,
-            self.generate_class_model,
-            self.content_class_model,
+            self.discrim_model,
+            self.style_class_model,
         ) = npi_training_models.load_training_models()
 
         # TODO: See if it is okay to initialize gpt2 here instead of every loop
@@ -301,19 +301,18 @@ class NPITrainer:
 
         # Initialize optimizer
         self.npi_optimizer = optim.Adam(self.npi_model.parameters(), lr=self.npi_lr)
-        self.generate_class_optimizer = optim.Adam(
-            self.generate_class_model.parameters(), lr=self.disc_lr
+        self.discrim_model_optimizer = optim.Adam(
+            self.discrim_model.parameters(), lr=self.disc_lr
         )
 
         # Set up NPILoss
-        self.npi_objective.content_classifier_model = self.content_class_model
-        self.npi_objective.generation_classifier_model = self.generate_class_model
+        self.npi_objective.style_class_model = self.style_class_model
+        self.npi_objective.discrim_model = self.discrim_model
 
         print("Training")
 
         for epoch in range(num_epochs):
             gc.collect()
-            print("############ Epoch == ", epoch, " ############")
 
             # Looping through training batches
             loop = tqdm(total=train_len, position=0, leave=False)
@@ -332,10 +331,10 @@ class NPITrainer:
 
                 g_class_loss_item = None
                 if epoch >= self.headstart:
-                    g_class_loss_item = self.train_generator_step(
+                    g_class_loss_item = self.train_discrim_step(
                         orig_activ, pred_gpt2_outs
                     )
-                    self.train_batch_metadata["generate_class_losses"].append(
+                    self.train_batch_metadata["discrim_class_losses"].append(
                         g_class_loss_item
                     )
 
@@ -378,8 +377,6 @@ class NPITrainer:
 
             # report current state to terminal
             torch.cuda.empty_cache()
-
-            print("end of regular epoch")
 
             if epoch % self.save_freq == 0 and epoch >= self.headstart:
                 npi_training_models.save_models(epoch)
