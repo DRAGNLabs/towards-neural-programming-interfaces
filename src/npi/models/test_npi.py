@@ -99,7 +99,7 @@ def generate_text(in_text, lm_model, tokenizer, num_generation_iters=100,
 
         tokens = torch.cat((tokens, next_token.unsqueeze(0)), dim=1).cuda()
 
-    for _ in tqdm(range(num_generation_iters), leave=False, desc="Model: GPT 2 Vanilla"):
+    for _ in tqdm(range(num_generation_iters), position=0, desc="Model: GPT 2 Vanilla"):
 
         hidden_states, presents = lm_model(input_ids=tokens)
 
@@ -162,7 +162,7 @@ def generate_text_with_NPI(in_text, lm_model, vanilla_lm_model, tokenizer, pertu
 
     vanilla_lm_model.transformer.output_hidden_states = True
 
-    loop = tqdm(total=num_generation_iters - len(out_tokens), leave=False, desc = "Model: GPT2 with NPI")
+    loop = tqdm(total=num_generation_iters - len(out_tokens), position=0, desc = "Model: GPT2 with NPI")
     while len(out_tokens) < num_generation_iters:
 
         big_array = []
