@@ -74,10 +74,10 @@ if __name__ == "__main__":
                         default="gpt2",
                         help="pretrained model to use. For small GPT-2 use 'gpt2' and for medium GPT-2 use 'gpt2-medium'"
                         )
-    # parser.add_argument("--model-layers",
-    #                     default="0,1,2,3,4,5,6,7,8,9,10,11,12",
-    #                     help="Which layers to extract from language model? layer indices separated by commas\nRecommended: if spacial restrictions allow, use all available layers for data set generation and extract the needed layers at training using the extract_needed_layers function"
-    #                     ) Need all layers to train npi
+    parser.add_argument("--model-layers",
+                        default="0,1,2,3,4,5,6,7,8,9,10,11,12",
+                        help="Which layers to extract from language model? layer indices separated by commas\nRecommended: if spacial restrictions allow, use all available layers for data set generation and extract the needed layers at training using the extract_needed_layers function"
+                        ) Need all layers to train npi
     parser.add_argument("--seq-len",
                         type=int,
                         default=10,

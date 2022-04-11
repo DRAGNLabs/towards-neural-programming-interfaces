@@ -2,6 +2,8 @@ from argparse import ArgumentParser
 import torch
 
 from npi.config import NPIConfig
+from npi.dataset import construct_dataset
+from npi.dataset.construct_dataset import *
 from npi.dataset.npi_dataset import NPIDatasetLoader
 from npi.models import NPITrainingModels
 from npi.training.test_classifier import test_classifier
@@ -18,7 +20,7 @@ def train(args):
     split_ratio = 0.25  # TODO: Hyperparam
     batch_size = 5 # TODO: Hyperparam
     headstart = 0 # TODO: Hyperparam, set at 0 for debugging
-    config = NPIConfig(device, model_save_folder="../models/npi_models/", dataset_folder="../data/processed", npi_name="politics")
+    config = NPIConfig(device, model_save_folder="../models/npi_models/", dataset_folder="../data/processed", npi_name="anonymous")
     models = NPITrainingModels(
         config,
         style_classifier_path="../notebooks/politics/classifiers/layers_5_11/Classifier_classification_network_epoch0.bin",
@@ -45,6 +47,23 @@ def test(args):
 
 def construct(args):
     print("Construct", args)
+    device = torch.device("cuda:0")  # TODO: Hyperparam
+    # sent_length/window_size
+    # num_iters
+    # perterb_indicies
+    # top_p
+    # top_k
+    config = NPIConfig(device, model_save_folder="../models/npi_models/", dataset_folder="../data/processed", npi_name="anonymous")
+    dataset_constructor = NPIDatasetConstructor(config)
+
+    if True:
+      # num_chunks
+      # target_word
+      # inject_wordiness
+      dataset_constructor.construct_target_word_dataset()
+    else:
+      dataset_constructor.construct_dataset(data_iter, data_len)
+
 
 
 parser = ArgumentParser(prog="src")
