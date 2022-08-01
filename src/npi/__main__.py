@@ -60,7 +60,7 @@ def construct(args):
       # num_chunks
       # target_word
       # inject_wordiness
-      dataset_constructor.construct_target_word_dataset()
+      dataset_constructor.construct_target_word_dataset("../smaller_wiki_books_reddit_shuffled.txt")
     else:
       dataset_constructor.construct_dataset(data_iter, data_len)
 

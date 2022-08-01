@@ -24,7 +24,7 @@ def accuracy_by_nate(x, y):
         x, y are both 1-dim torch.Tensor objects or np.ndarray
     """
     x, y = x.squeeze().data.cpu().numpy(), y.squeeze().data.cpu().numpy()
-    x = np.array([round(xi) for xi in x])
+    x = np.array([round(xi) for xi in x]) #TODO: Fix when batchsize is 1.
     y = np.array([round(yi) for yi in y])
     if len(x) != 0:
         return len(x[x == y]) / len(x)
@@ -103,8 +103,8 @@ class NPITrainer:
         self.discrim_model.zero_grad()  # discrim_model_optimizer.zero_grad()
 
         # labels
-        y_real_GPT2 = torch.zeros(self.batch_size).float().cuda()  # 0 = real GPT2
-        y_fake_GPT2 = torch.ones(self.batch_size).float().cuda()  # 1 = fake GPT2
+        y_real_GPT2 = torch.zeros(self.batch_size).float().cuda(device=self.config.device)  # 0 = real GPT2
+        y_fake_GPT2 = torch.ones(self.batch_size).float().cuda(device=self.config.device)  # 1 = fake GPT2
         # y_real_GPT2, y_fake_GPT2 = Variable(y_real_GPT2), Variable(y_fake_GPT2)
 
         # Now predict and get loss
@@ -138,9 +138,9 @@ class NPITrainer:
 
         # labels
         y_word = (
-            torch.ones(self.batch_size).float().cuda()
+            torch.ones(self.batch_size).float().cuda(device=self.config.device)
         )  # ones here corresponds to having NO sexist slurs
-        y_real_GPT2 = torch.zeros(self.batch_size).float().cuda()
+        y_real_GPT2 = torch.zeros(self.batch_size).float().cuda(device=self.config.device)
 
         # get classifications and loss
         style_classification = self.style_class_model(pred_gpt2_outs)
@@ -169,7 +169,7 @@ class NPITrainer:
             orig_text,
             generated_text,
             tokenizer=self.gpt2_tokenizer,
-            max_seq_len=self.config.max_seq_len,
+            max_seq_len=self.config.window_size,
             num_seq_iters=self.config.num_seq_iters,
             device=self.config.device,
         )
@@ -183,12 +183,12 @@ class NPITrainer:
         for orig_activ, orig_tokens, orig_text, generated_text in test_loader:
 
             # Now we know functional_batch_size == batch_size
-            y_real_GPT2 = torch.zeros(self.batch_size).float().cuda()  # 0 = real GPT2
-            y_fake_GPT2 = torch.ones(self.batch_size).float().cuda()  # 1 = fake GPT2
-            y_word = torch.ones(self.batch_size).float().cuda()
+            y_real_GPT2 = torch.zeros(self.batch_size).float().cuda(device=self.config.device)  # 0 = real GPT2
+            y_fake_GPT2 = torch.ones(self.batch_size).float().cuda(device=self.config.device)  # 1 = fake GPT2
+            y_word = torch.ones(self.batch_size).float().cuda(device=self.config.device)
 
-            orig_activ = orig_activ.cuda(non_blocking=True).float()
-            orig_tokens = orig_tokens.cuda(non_blocking=True)
+            orig_activ = orig_activ.cuda(device=self.config.device, non_blocking=True).float()
+            orig_tokens = orig_tokens.cuda(device=self.config.device, non_blocking=True)
 
             test_deltas = self.npi_model(orig_activ)
             test_gpt2_outs, test_text = self.get_pred_gpt2_outs(orig_tokens, orig_text, generated_text, test_deltas)
@@ -322,7 +322,7 @@ class NPITrainer:
                 orig_text,
                 generated_text,
             ) in self.train_loader:
-                orig_activ = orig_activ.cuda(non_blocking=True).float()
+                orig_activ = orig_activ.cuda(non_blocking=True, device=self.config.device).float()
 
                 self.npi_model.eval()  # TODO: See if this is needed
                 pred_gpt2_outs, _ = self.get_pred_gpt2_outs(

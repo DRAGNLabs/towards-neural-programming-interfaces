@@ -454,7 +454,7 @@ class GPT2LMWithNPI(GPT2LMHeadModel):
                 generated_sent = generated_sent + next_word + " "
 
                 # ...update list of tokens
-                tokens = torch.cat((tokens, next_token.unsqueeze(0)), dim=1).cuda()
+                tokens = torch.cat((tokens, next_token.unsqueeze(0)), dim=1).cuda(device=device)
             if tokenizer is not None:
                 npi_sent_for_data_set = tokenizer.decode(
                     [x.item() for x in tokens[:, -max_seq_len:].flatten()]

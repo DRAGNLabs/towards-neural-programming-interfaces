@@ -91,7 +91,7 @@ class NPITrainingModels:
         if path:
             print(f"Loading {model_name} weights from {path}")
             model.load_state_dict(torch.load(path, map_location="cpu"))
-        elif require_pretrained:
+        elif require_pretrained and not model:
             raise ValueError(
                 f"{model_name} is not pretrained even though it is needed."
             )
@@ -199,12 +199,12 @@ class NPITrainingModels:
         in_text,
         vanilla_lm_model=GPT2LMHeadModel.from_pretrained("gpt2"),
         num_generation_iters=100,
-        num_seq_iters=10,
-        max_seq_len=10,
+        # num_seq_iters=10,
+        # max_seq_len=10,
         num_samples=1,
         temperature=1,
-        top_k=1,
-        top_p=0.0,
+        # top_k=1,
+        # top_p=0.0,
     ):
         lm_model, gpt2_tokenizer = self.load_gpt2()
         npi_model = self.load_npi_model()
@@ -216,10 +216,10 @@ class NPITrainingModels:
             self.config.perturbation_indices,
             npi_model,
             num_generation_iters,
-            num_seq_iters,
-            max_seq_len,
+            self.config.num_seq_iters,
+            self.config.window_size,
             num_samples,
             temperature,
-            top_k,
-            top_p,
+            self.config.top_k,
+            self.config.top_p,
         )

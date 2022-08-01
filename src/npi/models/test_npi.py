@@ -185,7 +185,7 @@ def generate_text_with_NPI(in_text, lm_model, vanilla_lm_model, tokenizer, pertu
         big_array = torch.cat(big_array, dim=1).unsqueeze(3)
         npi_perturbations = npi_model(big_array)
         reshaped = npi_perturbations[:, :, :, 0]
-        chunked = torch.chunk(reshaped, max_seq_len * len(perturbation_indices), dim=1)
+        chunked = torch.chunk(reshaped, num_seq_iters * len(perturbation_indices), dim=1) # TODO: check if changing to num_seq_iters is correct
         curr_perturbs = [x.view(1, max_seq_len, -1) for x in chunked]
 
         for i in range(num_seq_iters):

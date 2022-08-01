@@ -44,19 +44,13 @@ class NPIDatasetConstructor:
 # target word
 # Inject wordiness
 
-    def construct_target_word_dataset(self, num_chunks=57, target_word='cat', inject_wordiness=True):
+    def construct_target_word_dataset(self, mixed_sentence_file, target_word='cat', inject_wordiness=True, num_sentences=5000):
         sink = wds.TarWriter(self.save_file)
 
         nlp = spacy.load("en_core_web_sm")
-        mixed_sentence_file = "../smaller_wiki_books_reddit_shuffled.txt"
-        pkl_name = "../data/raw/sentence_arrays.pkl"
         pretrained_models = ["gpt2"]
-        # # we have a default special term_list
-        # if args.target_words == 'sexist_slurs':
-        #     with open("data/sexist_terms.txt", 'r') as f:
-        #         args.target_words = f.read().strip()
+
         target_words = target_word
-        num_chunks = num_chunks
         term_list = target_words.split(',')  # list of target words
         term_list = [term.lower().strip() for term in term_list]  # clean words
         while '' in term_list:  # we don't want any '' empty strings
@@ -71,44 +65,18 @@ class NPIDatasetConstructor:
 
         # define variables for determining text processing
 
-        # num_checks will determine the maximum number of .pkl data files to be generated
-        #   of course you can always kill the process once you feel you have enough data
-        num_chunks = 25 * len(pretrained_models) * len(PRED_INDICES)
-        num_sentences_per_chunk = 4000 // len(PRED_INDICES)  # a pkl file should only be so big for loading speed
-        num_sentences = num_chunks * num_sentences_per_chunk
         sent_len = self.window_size
         num_iters = self.num_iters
         max_iters = self.max_iters
         assert max_iters >= num_iters
         top_k = self.top_k
         top_p = self.top_p
-                                                                                                                                            # temperature = 1
-        # define how sentence label vectors shall be indexed
-        FAKE_DATA_INDEX = 0
-        UNK_LABEL_INDEX = -2  # 1 + (num_word_categories * num_in_word_category)
-        GPT2_MODEL_INDEX = -1
         # optional_s
         OPTIONAL_S = True  # n8 HACK
-
-        # define how each data point in the data set will be indexed
-        ORIG_ACTIV_INDEX = 0  # activation arrays concatenated
-        ORIG_LABEL_INDEX = 1  # label of output text
-        TARG_LABEL_INDEX = 2  # this entry no longer used in our implementation
-        LANG_MODEL_INDEX = 3  # pretrained model name
-        META_DATA_INDEX = 4  # relevant meta data including text tokens
-        ORIG_TEXT_INDEX = 5  # input text that yields lang model output text
-        PRED_TEXT_INDEX = 6  # this entry no longer used in our implementation
-        TARG_TEXT_INDEX = 7  # target term/behavior
-        GPT2_TEXT_INDEX = 8  # the text of what the lang model actually produced
 
         # params to inject the word randomly into inputs to encourage its output
         INJECT_WORDNESS = inject_wordiness
         INJECT_WORD_RAND_CHANGES = True  # this one should likely be True if the first one is
-
-        # Fix pkl_name:
-        if ".pkl" not in pkl_name:
-            pkl_name = pkl_name + ".pkl"
-        pkl_name_base = pkl_name
 
         # Create tokenizers
         model_name = pretrained_models[0]
@@ -117,9 +85,6 @@ class NPIDatasetConstructor:
             gpt2_tokenizer = GPT2Tokenizer.from_pretrained(model_name)
         else:
             raise NotImplementedError("Only the following tokenizers are supported: {}".format(model_name))
-
-        num_keywords = len(TARG)
-        num_possible_labels = int(1 + num_keywords)
 
         model = None
         tokenizer = None
@@ -139,7 +104,6 @@ class NPIDatasetConstructor:
             # BEGINNING ##############################################################################################################################
 
             print("and so it begins", flush=True)
-            dataset = []
 
             word_to_toks = {}
             word_to_toks[TARG[0]] = []
@@ -162,8 +126,8 @@ class NPIDatasetConstructor:
             word_counts['UNK'] = 0
 
             # And a few other things we need defined outside the loop
-            pkl_counter = 0
             iterator = -1
+            data_count = 0
 
             """Now we begin the loop of a lifetime...---...---...---...---...---...---...---...---...---...---"""
 
@@ -194,7 +158,6 @@ class NPIDatasetConstructor:
                     tokens = tokens.unsqueeze(0).repeat(1, 1)
                     tokens = tokens.cuda()
                     all_text_tokens = copy.deepcopy(tokens)
-                    ogog_tokens = copy.deepcopy(tokens)
 
                     # some constants to set first
                     found_words_dict = {}
@@ -338,70 +301,40 @@ class NPIDatasetConstructor:
                     big_array = big_array.permute(1, 2,
                                                   0)  # shape is (2*sent_len*num_iters, emb_dim, 1) now, emb_dim will be 1024 or 768
                     big_array = big_array.data.cpu().numpy()
-        #########################################################################################################################
-                    # if append_to_dataset:
-                    #     datum = [
-                    #         big_array,  # ORIG ACTIV
-                    #         orig_classification,  # ORIG LABEL
-                    #         None,  # this no longer used
-                    #         model_name,  # LANG MODEL: model_name an abstraction for 'gpt2'
-                    #         {'num_gpt2_iters': num_gpt2_iters_run, \
-                    #         'orig_tokens': orig_tokens, \
-                    #         'gpt2_generated_tokens': gpt2_generated_tokens},  # META DATA
-                    #         orig_text,  # ORIG TEXT (or what we're deeming 'originial text')
-                    #         None,  # PRED TEXT this literally won't exist until we have an NPI
-                    #         TARG[0],  # TARG TEXT
-                    #         gpt2_generated_text  # GPT2 TEXT: just generated right here by the GPT2 :D :D
-                    #     ]
-                    #     dataset.append(datum)
-        #-------------------------------------------------------------------------------------------------------------------------
-                      #put before loop
 
-                    sink.write(
-                        {
-                            "__key__": "sample%06d" % i,
-                            "orig_activ.npy": big_array,
-                            "orig_label.npy": orig_classification,
-                            "orig.txt": orig_text,
-                            "generated.txt": gpt2_generated_text,
-                            "target.txt": TARG[0],  # TODO: This may not be needed, or needed for word avoidance/induction
-                            "orig_tokens.pyd": orig_tokens,
-                            "metadata.pyd": {
-                                "num_gpt2_iters": num_gpt2_iters_run,
-                                "gpt2_generated_tokens": gpt2_generated_tokens,
-                            },
-                        }
-                    )
-
-        ##########################################################################################################################
-                    # # Check data len
-                    # if len(dataset) >= num_sentences_per_chunk:
-                    #     # Then we want to save it
-                    #     # pkl stuff
-                    #     pkl_name = pkl_name_base + "_" + str(pkl_counter)
-                    #     with open(pkl_name, 'wb') as f:
-                    #         pkl.dump(dataset, f)
-
-                    #     # More business to conduct every num_sentences_per_chunk data
-                    #     del dataset
-                    #     dataset = []
-                    #     pkl_counter += 1
-
-                    # Now if we have all the pickles we need... we break! (bc we done yay)
-                    if pkl_counter == num_chunks:
-                        break  # :)
+                    if append_to_dataset:
+                        sink.write(
+                            {
+                                "__key__": "sample%06d" % data_count,
+                                "orig_activ.npy": big_array,
+                                "orig_label.npy": orig_classification,
+                                "orig.txt": orig_text,
+                                "generated.txt": gpt2_generated_text,
+                                "target.txt": TARG[0],  # TODO: This may not be needed, or needed for word avoidance/induction
+                                "orig_tokens.pyd": orig_tokens,
+                                "metadata.pyd": {
+                                    "num_gpt2_iters": num_gpt2_iters_run,
+                                    "gpt2_generated_tokens": gpt2_generated_tokens,
+                                },
+                            }
+                        )
+                        data_count += 1
 
                     # Now for helpful print statements
-                    if iterator % (num_sentences_per_chunk // (num_sentences_per_chunk // 100)) == 0:
-                        print("iterations: {}; target words data: {}/{}, generic data: {}/{}, pkls written: {}".format(
+                    if iterator % 50 == 0:
+                        print("iterations: {}; target words data: {}/{}, generic data: {}/{}, data written: {}".format(
                             iterator + 1, word_counts['target words'], num_sentences // 2, word_counts['UNK'],
-                            num_sentences // 2, pkl_counter), \
+                            num_sentences // 2, data_count), \
                             flush=True)
+                    
+                    if data_count == num_sentences:
+                        break # Break out of the loop once we got the amount of data appended
 
         except:
             raise
 
         finally:
+            sink.close()
             torch.cuda.empty_cache()
 
         # shuffle now

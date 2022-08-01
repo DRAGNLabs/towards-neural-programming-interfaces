@@ -50,6 +50,6 @@ class NPIConfig:
         self.m = lm_config['m']
 
         # Calculate n from pis
-        self.n = len(perturbation_indices) * max_seq_len * num_seq_iters  # could be 200
+        self.n = len(perturbation_indices) * window_size * num_seq_iters  # could be 200
 
         self.k = 1 #TODO: configure this when actually in use.

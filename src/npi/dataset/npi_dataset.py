@@ -38,7 +38,7 @@ class NPIDatasetLoader:
                 wds.autodecode.basichandlers(key, data),
                 self.config.perturbation_indices,
                 self.config.num_total_layers,
-                self.config.max_seq_len,
+                self.config.window_size, # TODO: Figure out the difference between window_size and max_seq_len
                 self.config.num_seq_iters,
             )
             if "orig_activ" in key
