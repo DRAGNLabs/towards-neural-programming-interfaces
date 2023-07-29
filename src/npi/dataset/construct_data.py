@@ -10,15 +10,13 @@ import argparse
 import pickle as pkl
 import random
 import copy as cp
-
 import numpy as np
 # for NLP
 import spacy
 import torch
 import torch.nn.functional as F
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
-
-from utils import top_k_top_p_filtering
+from npi.transformers import GPT2LMHeadModel, GPT2Tokenizer
+from npi.utils import top_k_top_p_filtering
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -79,7 +77,7 @@ if __name__ == "__main__":
     parser.add_argument("--model-layers",
                         default="0,1,2,3,4,5,6,7,8,9,10,11,12",
                         help="Which layers to extract from language model? layer indices separated by commas\nRecommended: if spacial restrictions allow, use all available layers for data set generation and extract the needed layers at training using the extract_needed_layers function"
-                        )
+                        ) Need all layers to train npi
     parser.add_argument("--seq-len",
                         type=int,
                         default=10,
@@ -90,6 +88,15 @@ if __name__ == "__main__":
                         default=10,
                         help="number of times to run lang model forward pass (extracting layers each time)"
                         )
+    parser.add_argument("--num-chunks",
+                        type=int,
+                        default=57,
+                        help="number of pkls to generate"
+                        )
+    parser.add_argument("--inject-wordness",
+                    default=True,
+                    help="number of pkls to generate"
+                    )
 
     args = parser.parse_args()
 
@@ -117,9 +124,7 @@ if __name__ == "__main__":
     # num_checks will determine the maximum number of .pkl data files to be generated
     #   of course you can always kill the process once you feel you have enough data
     num_chunks = 25 * len(pretrained_models) * len(PRED_INDICES)
-    num_chunks = 57  # NOTE: This just for the default sexist slur NPI training, for which only 57 pickles are needed. Suggested to comment out
-    # for other applications and just interrupt the process when you have a good amount of data
-    # (depending on your machinery, time constraints)
+    num_chunks = args.num_chunks  #number of pkls to generate
     num_sentences_per_chunk = 4000 // len(PRED_INDICES)  # a pkl file should only be so big for loading speed
     num_sentences = num_chunks * num_sentences_per_chunk
     sent_len = args.seq_len
@@ -128,7 +133,7 @@ if __name__ == "__main__":
     assert max_iters >= num_iters
     top_k = 1
     top_p = .9
-    temperature = 1
+                                                                                                                                        # temperature = 1
     # define how sentence label vectors shall be indexed
     FAKE_DATA_INDEX = 0
     UNK_LABEL_INDEX = -2  # 1 + (num_word_categories * num_in_word_category)
@@ -148,7 +153,7 @@ if __name__ == "__main__":
     GPT2_TEXT_INDEX = 8  # the text of what the lang model actually produced
 
     # params to inject the word randomly into inputs to encourage its output
-    INJECT_WORDNESS = True
+    INJECT_WORDNESS = args.inject_wordness
     INJECT_WORD_RAND_CHANGES = True  # this one should likely be True if the first one is
 
     # Fix pkl_name:
@@ -385,16 +390,6 @@ if __name__ == "__main__":
                                               0)  # shape is (2*sent_len*num_iters, emb_dim, 1) now, emb_dim will be 1024 or 768
                 big_array = big_array.data.cpu().numpy()
 
-                # We want to save this big_array in the data
-                # ORIG_ACTIV_INDEX = 0
-                # ORIG_LABEL_INDEX = 1
-                # TARG_LABEL_INDEX = 2
-                # LANG_MODEL_INDEX = 3
-                # META_DATA_INDEX = 4
-                # ORIG_TEXT_INDEX = 5
-                # PRED_TEXT_INDEX = 6
-                # TARG_TEXT_INDEX = 7
-                # GPT2_TEXT_INDEX = 8
                 if append_to_dataset:
                     datum = [
                         big_array,  # ORIG ACTIV

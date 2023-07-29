@@ -1,0 +1,29 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+"npi" = {editable = true, path = "."}
+numpy = "*"
+torch = "==1.5.1"
+torchvision = "==0.6.1"
+scipy = "*"
+six = "*"
+boto3 = "*"
+requests = "*"
+tqdm = "*"
+regex = "*"
+sacremoses = "*"
+matplotlib = "*"
+scikit-learn = "*"
+spacy = "*"
+pandas = "*"
+webdataset = "==0.1.*"
+
+[dev-packages]
+autopep8 = "*"
+ipykernel = "*"
+
+[requires]
+python_version = "3.8"

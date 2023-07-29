@@ -2,3 +2,23 @@ smaller*
 transformers/
 BID*
 classifiers/
+*.pkl_*
+*.tar
+npi_models
+test_out
+
+# VS Code
+.vscode
+.devcontainer
+
+# Mac OS-specific storage files
+.DS_Store
+
+# vim
+*.swp
+*.swo
+
+#Python
+__pycache__
+*.egg-info
+build
